@@ -48,14 +48,19 @@ class MouseClicker:
         self.screen_wh = screen_wh
         self.logger = logging.getLogger('.'.join((__name__, 'MouseClicker')))
 
-    def click(self, ploc, mine_under):
+    def click(self, ploc, mine_under, wait=True):
         sloc = pixelcoor_to_screencoor(self.screenshot_wh, self.screen_wh, ploc)
         pg.moveTo(sloc[0], sloc[1])
         button = 'right' if mine_under else 'left'
         pg.click(button=button)
-        time.sleep(PAUSE_AFTER_CLICK)
+        if wait:
+            time.sleep(PAUSE_AFTER_CLICK)
         self.logger.debug('Clicked %s button at %s (ploc=%s)',
                           button, sloc, ploc)
+
+    @staticmethod
+    def wait(self):
+        time.sleep(PAUSE_AFTER_CLICK)
 
 
 def action(bdetector, mouse_clicker, bloc_unraveled, mine_under) -> None:
@@ -137,7 +142,9 @@ def main():
                             qcells = list(zip(*np.where(board == satinfer.CID_Q)))
                             cellcoor = np.random.randint(len(qcells))
                             cellid = np.ravel_multi_index(cellcoor, board.shape)
+                            guess_value = int(np.random.randint(2))
                             deterministic = False
+                            actionpair = (cellid, bool(guess_value))
                         else:
                             solution, deterministic = solution[:2], solution[2]
                             actionpair = satinfer.solution_as_cellid(cnf, *solution)
