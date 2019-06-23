@@ -202,11 +202,25 @@ def interprete_solutions(solutions):
     if solutions.size:
         signs = np.sign(solutions)
         logger.debug('Solution signs: %s', signs)
-        idx = np.argsort(np.abs(np.sum(signs, axis=0)))[-1] + 1
-        deterministic = (len(set(signs[:, idx-1].tolist())) == 1)
-        value = np.median(signs[:, idx-1]) > 0
-        logger.debug('Selected index: %d, Selected value: %d', idx, value)
-        return deterministic, [(idx, value)]
+        colsums = np.abs(np.sum(signs, axis=0))
+        sorted_indices = np.argsort(colsums)
+        actionpairs = []
+        for index in sorted_indices[::-1]:
+            idx = index + 1
+            deterministic = (colsums[index] == signs.shape[0])
+            if deterministic:
+                value = (signs[0, index] > 0)
+                actionpairs.append((idx, value))
+            elif not actionpairs:
+                value = (np.median(signs[:, index]) > 0)
+                actionpairs.append((idx, value))
+                break
+            else:
+                deterministic = True
+                break
+
+        logger.debug('Selected index-value pairs: %s', actionpairs)
+        return deterministic, actionpairs
     else:
         raise NoSolutionError
 
