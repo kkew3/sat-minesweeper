@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="maketable:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/maketable_jar</output-path>
+    <root id="archive" name="maketable.jar">
+      <element id="module-output" name="maketable" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/commons-math3-3.6.1/commons-math3-3.6.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

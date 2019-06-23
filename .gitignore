@@ -1,0 +1,8 @@
+rt/
+data/makeSATTable/commons-math3-3.6.1/docs/
+__pycache__/
+logs/
+*.ipynb
+*.swp
+.envrc
+.ipython.startup
