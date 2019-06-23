@@ -1,6 +1,7 @@
 rt/
 data/makeSATTable/commons-math3-3.6.1/docs/
 __pycache__/
+.idea/
 logs/
 *.ipynb
 *.swp
