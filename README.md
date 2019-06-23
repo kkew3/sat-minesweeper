@@ -4,6 +4,9 @@
 
 ![large-demo](demo/large.gif)
 
+*(Note that the GIF's time is slower than actual time.
+In reality the agent makes a step every 0.3 seconds.)*
+
 ## Introduction
 
 This is a SAT-based MineSweeper solver.
