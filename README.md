@@ -1,5 +1,9 @@
 # SAT-based Classic MineSweeper Solver
 
+![small-demo](demo/small.gif)
+
+![large-demo](demo/large.gif)
+
 ## Introduction
 
 This is a SAT-based MineSweeper solver.
