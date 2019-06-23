@@ -206,7 +206,7 @@ def interprete_solutions(solutions):
         deterministic = (len(set(signs[:, idx-1].tolist())) == 1)
         value = np.median(signs[:, idx-1]) > 0
         logger.debug('Selected index: %d, Selected value: %d', idx, value)
-        return idx, value, deterministic
+        return deterministic, [(idx, value)]
     else:
         raise NoSolutionError
 

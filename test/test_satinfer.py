@@ -18,14 +18,14 @@ def test_cnftemplatelib():
 def test_interprete_solutions():
     f = satinfer.interprete_solutions
     assert f([[1, -2, 3],
-              [-1, 2, 3]])  == (3, True)
+              [-1, 2, 3]])  == (True, [(3, True)])
     assert f([[1, -2, -3],
-              [-1, -2, 3]]) == (2, False)
+              [-1, -2, 3]]) == (True, [(2, False)])
     assert f([[1, -2, 3],
               [1, 2, -3],
               [-1, 2, 3],
-              [-1, 2, -3]]) == (2, True)
+              [-1, 2, -3]]) == (False, [(2, True)])
     assert f([[-1, -2, 3],
               [1, -2, -3],
               [-1, 2, 3],
-              [-1, 2, -3]]) == (1, False)
+              [-1, 2, -3]]) == (False, [(1, False)])

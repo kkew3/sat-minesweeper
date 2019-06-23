@@ -59,16 +59,18 @@ class MouseClicker:
                           button, sloc, ploc)
 
     @staticmethod
-    def wait(self):
+    def wait():
         time.sleep(PAUSE_AFTER_CLICK)
 
 
-def action(bdetector, mouse_clicker, bloc_unraveled, mine_under) -> None:
+def action(bdetector, mouse_clicker: MouseClicker, actionpair) -> None:
     logger = logging.getLogger('.'.join((__name__, 'action')))
-    ploc = vb.cellid_as_pixelloc(bdetector, bloc_unraveled)
-    logger.info('Ready to click cell id %d with %d mine under',
-                bloc_unraveled, mine_under)
-    mouse_clicker.click(ploc, mine_under)
+    for bloc_unraveled, mine_under in actionpair:
+        ploc = vb.cellid_as_pixelloc(bdetector, bloc_unraveled)
+        logger.info('Ready to click cell id %d with %d mine under',
+                    bloc_unraveled, mine_under)
+        mouse_clicker.click(ploc, mine_under, wait=False)
+    mouse_clicker.wait()
 
 
 class GameWontBeginError(Exception): pass
@@ -128,14 +130,15 @@ def main():
                                  board.tolist())
                     if np.all(board == satinfer.CID_Q):
                         logger.info('Performing first step random guess')
-                        actionpair = satinfer.first_step(board)
+                        actionpair = [satinfer.first_step(board)]
                         deterministic = False
                     else:
                         logger.info('Performing SAT inference')
                         cnf = satinfer.make_cnf(cnf_tm, board)
                         solutions = satinfer.run_picosat(cnf)
                         try:
-                            solution = satinfer.interprete_solutions(solutions)
+                            deterministic, parsed_solutions = \
+                                satinfer.interprete_solutions(solutions)
                         except satinfer.NoSolutionError:
                             logger.warning('No solution was found; falling '
                                            'back to random guess')
@@ -144,11 +147,11 @@ def main():
                             cellid = np.ravel_multi_index(cellcoor, board.shape)
                             guess_value = int(np.random.randint(2))
                             deterministic = False
-                            actionpair = (cellid, bool(guess_value))
+                            actionpair = [(cellid, bool(guess_value))]
                         else:
-                            solution, deterministic = solution[:2], solution[2]
-                            actionpair = satinfer.solution_as_cellid(cnf, *solution)
-                    action(bdetector, mouse_clicker, *actionpair)
+                            actionpair = [satinfer.solution_as_cellid(cnf, *x)
+                                          for x in parsed_solutions]
+                    action(bdetector, mouse_clicker, actionpair)
                     logger.info('Solution was selected deterministically: %s',
                                 deterministic)
                     step += 1
