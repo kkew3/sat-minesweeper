@@ -143,7 +143,7 @@ class DNF2CNF implements Iterator<int[]> {
     @Override
     public int[] next() {
         int[] l = this.cpiter.next();
-        if (existsInversePair(l)) {
+        if (this.existsInversePair(l)) {
             return null;
         }
         return l;
