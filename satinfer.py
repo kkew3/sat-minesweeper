@@ -73,7 +73,7 @@ class CNFTemplateLib:
         n = len(vars_)
         assert n <= 10, vars_
         cnf = self.cnfs[self.index[(n, k)]][1]
-        srcch = list(map(str, range(1, n+1)))
+        srcch = list(map(str, range(1, n + 1)))
         tarch = list(map(str, vars_))
         cnf, reverse_tr = translate_cnf(cnf, srcch, tarch)
         return cnf, reverse_tr
@@ -134,15 +134,16 @@ def make_cnf(templates: CNFTemplateLib, predicted_board) -> CNF:
     cclauses = set()
     vars_ = set()
     vartable = np.arange(1, predicted_board.size + 1) \
-            .reshape(predicted_board.shape)
+        .reshape(predicted_board.shape)
     for x, y in zip(*np.where(numcells)):
         logger.debug('Processing (x,y)=(%d,%d)', x, y)
-        neighbors = predicted_board[max(0,x-1):x+2,max(0,y-1):y+2]
+        neighbors = predicted_board[max(0, x - 1):x + 2, max(0, y - 1):y + 2]
         logger.debug('Neighbors: %s', neighbors)
         qneighbors = np.where(neighbors == CID_Q)
         if qneighbors[0].shape[0]:
-            dclause_vars = [vartable[max(0,x-1):x+2,max(0,y-1):y+2][sx,sy]
-                            for sx, sy in zip(*qneighbors)]
+            dclause_vars = [
+                vartable[max(0, x - 1):x + 2, max(0, y - 1):y + 2][sx, sy]
+                for sx, sy in zip(*qneighbors)]
             k = predicted_board[x, y] - len(np.where(neighbors == CID_F)[0])
             logger.debug('DNF variables: %s; # of mines: %d', dclause_vars, k)
             try:
@@ -161,6 +162,7 @@ def make_cnf(templates: CNFTemplateLib, predicted_board) -> CNF:
     logger.debug('Final canonical clauses: %s', cnf.cano_cclauses)
     logger.debug('Final symbols: %s', vars_)
     return cnf
+
 
 def run_picosat(cnf):
     logger = logging.getLogger('.'.join((__name__, 'run_picosat')))
