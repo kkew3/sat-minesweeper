@@ -124,6 +124,29 @@ class CNF:
 class GameLostError(Exception): pass
 
 
+def make_cnf_for_cell(templates: CNFTemplateLib, predicted_board,
+                      vartable, cellcoor):
+    logger = logging.getLogger('.'.join((__name__, 'make_cnf_for_cell')))
+    x, y = cellcoor
+    neighbors = predicted_board[max(0, x - 1):x + 2, max(0, y - 1):y + 2]
+    logger.debug('Neighbors: %s', neighbors)
+    qneighbors = np.where(neighbors == CID_Q)
+    if qneighbors[0].shape[0]:
+        vars_ = [vartable[max(0, x - 1):x + 2, max(0, y - 1):y + 2][sx, sy]
+                 for sx, sy in zip(*qneighbors)]
+        k = predicted_board[x, y] - len(np.where(neighbors == CID_F)[0])
+        logger.debug('DNF variables: %s; # of mines: %d', vars_, k)
+        try:
+            cc, _ = templates.get(vars_, k)
+        except KeyError:
+            logger.warning('Failed to fetch CNF template from lib '
+                           '(x,y=%d,%d, n=%d, k=%d)', x, y, len(vars_), k)
+            return None
+        logger.debug('Fetched from templatelib clauses: %s', cc)
+        return vars_, cc
+    return None
+
+
 def make_cnf(templates: CNFTemplateLib, predicted_board) -> CNF:
     logger = logging.getLogger('.'.join((__name__, 'make_cnf')))
     numcells = (predicted_board >= 1) & (predicted_board <= 8)
@@ -137,25 +160,17 @@ def make_cnf(templates: CNFTemplateLib, predicted_board) -> CNF:
         .reshape(predicted_board.shape)
     for x, y in zip(*np.where(numcells)):
         logger.debug('Processing (x,y)=(%d,%d)', x, y)
-        neighbors = predicted_board[max(0, x - 1):x + 2, max(0, y - 1):y + 2]
-        logger.debug('Neighbors: %s', neighbors)
-        qneighbors = np.where(neighbors == CID_Q)
-        if qneighbors[0].shape[0]:
-            dclause_vars = [
-                vartable[max(0, x - 1):x + 2, max(0, y - 1):y + 2][sx, sy]
-                for sx, sy in zip(*qneighbors)]
-            k = predicted_board[x, y] - len(np.where(neighbors == CID_F)[0])
-            logger.debug('DNF variables: %s; # of mines: %d', dclause_vars, k)
-            try:
-                cc, _ = templates.get(dclause_vars, k)
-                logger.debug('Fetched from templatelib clauses: %s', cc)
-            except KeyError:
-                logger.warning('Failed to fetch CNF template from lib')
-                continue
+        result = make_cnf_for_cell(templates, predicted_board,
+                                   vartable, (x, y))
+        try:
+            dclause_vars, cc = result
+        except TypeError:
+            pass
+        else:
             cclauses.update(map(tuple, cc))
-            logger.debug('Total clauses: %s', cclauses)
+            logger.debug('Total clauses so far: %s', cclauses)
             vars_.update(dclause_vars)
-            logger.debug('Total symbols: %s', vars_)
+            logger.debug('Total symbols so far: %s', vars_)
     cclauses = list(map(list, cclauses))
     cnf = CNF(vars_, cclauses)
     logger.debug('Final clauses: %s', cclauses)
