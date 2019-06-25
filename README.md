@@ -29,7 +29,7 @@ Then x1+x2+x3=2.
 Since there is either mine under a cell or no mine under the cell, the three variables are either 0 or 1.
 Thus we may enumerate all possible assignments to x1, x2, x3, and write them as DNF clauses.
 After that, we may convert DNF to CNF.
-Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/makeSATTable/src/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
+Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
 
 ## Future works
 
