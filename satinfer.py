@@ -62,7 +62,6 @@ class CNFTemplateLib:
         logger = logging.getLogger('.'.join((__name__, 'CNFTemplateLib')))
         logger.debug('Loaded from data/sattable.json')
 
-
     def get(self, vars_: typing.Sequence[int], k: int):
         """
         :param vars_: a list of variables
