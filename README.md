@@ -14,9 +14,31 @@ It logs all events needed to reproduce the process.
 It automatically begins a new round whenever it loses or wins.
 And it records the winning rate.
 
+# How to use
+
+Open [freeminesweeper.org](http://www.freeminesweeper.org/minecore.html)'s minesweeper board page.
+Be sure to expose the entire board on screen.
+Now run command
+
+```bash
+. rt/bin/activate
+
+# for old solver which might hangs halfway
+#python mwsolver.py
+
+# for latest solver
+python mwsolver2.py
+```
+
+Again, be sure not to overlap the Terminal window with the board.
+Wait 10 seconds the computer will play on its own.
+
+Enjoy watching it playing!
+
+
 ## Mechanism
 
-The core mechanism is to convert current MineSweeper board into a CNF, and resort to [PicoSAT](http://fmv.jku.at/picosat/), a fast SAT solver, to get the solution.
+The core mechanism is to convert current MineSweeper board into a CNF, and resort to [PicoSAT](http://fmv.jku.at/picosat/), a fast SAT solver, to get the solution (Now I use [MiniSAT](http://minisat.se/) instead).
 Due to lack of assumptions (e.g. certain key cells haven't been uncovered yet), or due to the limits on the number of CNF clauses (up to 10 million), it often occurs that a number of possible solutions are returned (up to a thousand).
 To disambiguate, I find the symbol that maintain its set/clear state the most throughout all solutions.
 If that symbol is always set or always cleared, a.k.a. having mine underneath or otherwise, then it's definitely that state.
@@ -30,6 +52,14 @@ Since there is either mine under a cell or no mine under the cell, the three var
 Thus we may enumerate all possible assignments to x1, x2, x3, and write them as DNF clauses.
 After that, we may convert DNF to CNF.
 Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
+
+
+## Mechanism 2
+
+This is and amendment to previous solution, coded in `multisatinfer.py` and `mwsolver2.py`.
+There was problem where it takes too long to enumerate all possible SAT assignments.
+Now I compute SAT problem only on 5x5 sub-board neighborhood everywhere, which effectively reduce the complexity to solve each SAT problem.
+No more hangs now during runtime, even when solving 40x80 (660 mines) board.
 
 ## Future works
 
