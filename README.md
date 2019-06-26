@@ -21,7 +21,9 @@ Be sure to expose the entire board on screen.
 Now run command
 
 ```bash
+python3 -m virtualenv rt
 . rt/bin/activate
+pip install -r requirements.txt
 
 # for old solver which might hangs halfway
 #python mwsolver.py
