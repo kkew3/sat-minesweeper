@@ -6,11 +6,9 @@ pylint
 pytest
 matplotlib
 opencv-python
-torch
-torchvision
-scikit-learn
 tqdm
 sympy
 pyautogui
 pyobjc-core
 pyobjc
+python-sat
