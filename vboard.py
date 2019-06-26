@@ -226,6 +226,11 @@ if __name__ == '__main__':
                             dest='cells_todir', type=os.path.normpath,
                             help='if specified, the cell images will be '
                                  'populated to DIR, named by numeric order')
+        parser.add_argument('-B', '--recognized-board-tofile', metavar='FILE',
+                            dest='recognized_board_tofile',
+                            type=os.path.normpath,
+                            help='if specified, the recognized board CSV '
+                                 'will be saved to FILE')
         return parser
 
     def main():
@@ -237,6 +242,7 @@ if __name__ == '__main__':
             scr = tobw(scr)
         em = np.array(Image.open(args.empty_board).convert('L'))
         em = tobw(em)
+        cdetector = CellDetector()
         assert em.shape == scr.shape
         bdetector = detect_board(em)
         if args.cells_todir:
@@ -250,5 +256,12 @@ if __name__ == '__main__':
         elif args.board_tofile:
             board = bdetector.as_board(scr)
             Image.fromarray(board).save(args.board_tofile)
+        elif args.recognized_board_tofile:
+            cells = bdetector.as_cells(scr)
+            board = cdetector(cells)
+            board = np.array(board)
+            board = board.reshape((bdetector.height, bdetector.width))
+            np.savetxt(args.recognized_board_tofile, board,
+                       fmt='%d', delimiter=',')
 
     main()
