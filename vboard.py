@@ -13,9 +13,7 @@ import scipy.spatial.distance
 import PIL.Image as Image
 import PIL.ImageGrab
 
-
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
-
 
 FACE_TO_CID = dict(zip('012345678fmq', range(12)))
 KeyLineType = typing.Tuple[np.ndarray, np.ndarray]
@@ -32,16 +30,18 @@ def tobw(img, threshold=128):
     return ((img.astype(np.int64) >= threshold) * 255).astype(np.uint8)
 
 
-def loadimg(filename: str):
+def loadimg(filename: str, bw=True):
     """
     Load image as 1-bit black & white image from ``./imgs/``.
 
     :param filename: the image filename
+    :param bw: if ``True``, threshold the image to 1-bit black and white
     :return: a uint8 image
     """
     filename = os.path.join(IMGDIR, filename)
     img = np.array(Image.open(filename).convert('L'), dtype=np.int64)
-    img = tobw(img)
+    if bw:
+        img = tobw(img)
     return img
 
 
@@ -53,6 +53,8 @@ def get_rect_midpoint(top_left, shape):
 
 
 class BoardNotFoundError(Exception): pass
+
+
 class KeyLinesNotFoundError(Exception): pass
 
 
@@ -81,7 +83,7 @@ class BoardLocator:
         cells = []
         for yp in klh[:-1]:
             for xp in klw[:-1]:
-                cells.append(np.copy(screenshot[yp:yp+ch, xp:xp+cw]))
+                cells.append(np.copy(screenshot[yp:yp + ch, xp:xp + cw]))
         cells = np.stack(cells)
         return cells
 
@@ -91,9 +93,9 @@ class BoardLocator:
         """
         x, y = board_coordinate
         py = int((x + .5) / self.height * self.lower
-                 + (1-(x+.5) / self.height) * self.upper)
+                 + (1 - (x + .5) / self.height) * self.upper)
         px = int((y + .5) / self.width * self.right
-                 + (1-(y+.5) / self.width) * self.left)
+                 + (1 - (y + .5) / self.width) * self.left)
         return px, py
 
 
@@ -144,7 +146,7 @@ class SmilyDetector:
 
     def get_game_stage(self, screenshot):
         smily = screenshot[self.topleft[1]:self.bottomright[1],
-                           self.topleft[0]:self.bottomright[0]]
+                self.topleft[0]:self.bottomright[0]]
         smily = normalize(smily)
         smily = smily.reshape((1, -1))
         D = scipy.spatial.distance.cdist(self.faces, smily)
@@ -164,13 +166,62 @@ def locate_smily(screenshot) -> SmilyDetector:
                    topleft[1] + face.shape[0])
     return SmilyDetector(topleft, bottomright)
 
-def make_screenshot(fake=False) -> np.ndarray:
+
+class MineMonitorDetector:
+    def __init__(self, rightmost, leftmost, topmost, bottommost, top, right):
+        self.rm = rightmost
+        self.lm = leftmost
+        self.tm = topmost
+        self.bm = bottommost
+        self.top = top
+        self.right = right
+        self.lookuptable = np.array([
+            [1, 0, 1, 1, 0, 1, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1, 1, 0, 1, 1],
+            [1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+            [1, 0, 0, 0, 1, 1, 1, 0, 1, 1],
+            [1, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+            [1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.units = np.array([100, 10, 1])
+
+    def __call__(self, screenshot_gray):
+        roi = screenshot_gray[self.tm:self.bm, self.lm:self.rm]
+        region = (roi[self.top:, :self.right] > 50)
+        vert = np.linspace(0, region.shape[1], 7, dtype=np.int64)
+        hori = np.linspace(0, region.shape[0], 5, dtype=np.int64)
+        vresults = np.split(region[:, vert[1::2]], hori[1::2], axis=0)
+        hresults = np.split(region[hori[1::2], :], vert[1:-1], axis=1)
+        vresults = np.stack([np.sum(x, axis=0) > 0 for x in vresults], axis=1)
+        hresults = np.stack([np.sum(x, axis=1) > 0 for x in hresults])
+        hresults = hresults.reshape((3, 4))
+        results = np.concatenate((vresults, hresults), axis=1).astype(np.int64)
+        digits = np.argmax(np.matmul(results, self.lookuptable), axis=1)
+        return np.dot(digits, self.units)
+
+
+def locate_mine_monitor(bdetector: BoardLocator, sdetector: SmilyDetector,
+                        screenshot):
+    rightmost = sdetector.topleft[0]
+    leftmost = bdetector.left
+    topmost = sdetector.topleft[1]
+    bottommost = sdetector.bottomright[1]
+    roi = screenshot[topmost:bottommost, leftmost:rightmost]
+    top = np.nonzero(np.abs(np.diff(roi[:, 0])))[0][0] + 1
+    right = np.nonzero(np.abs(np.diff(roi[-1, :])))[0][0] + 1
+    return MineMonitorDetector(rightmost, leftmost, topmost, bottommost,
+                               top, right)
+
+
+def make_screenshot(fake=False, bw=True) -> np.ndarray:
     if fake:
         scr = Image.open('imgs/desktop-bw.png')
     else:
         scr = PIL.ImageGrab.grab()
     scr = np.array(scr.convert('L'))
-    scr = tobw(scr)
+    if bw:
+        scr = tobw(scr)
     return scr
 
 
@@ -208,6 +259,7 @@ def cellid_as_pixelloc(bdetector: BoardLocator, cellid):
 if __name__ == '__main__':
     import argparse
 
+
     def make_parser():
         parser = argparse.ArgumentParser(
             description='Find board and extract cells')
@@ -232,6 +284,7 @@ if __name__ == '__main__':
                             help='if specified, the recognized board CSV '
                                  'will be saved to FILE')
         return parser
+
 
     def main():
         args = make_parser().parse_args()
@@ -263,5 +316,6 @@ if __name__ == '__main__':
             board = board.reshape((bdetector.height, bdetector.width))
             np.savetxt(args.recognized_board_tofile, board,
                        fmt='%d', delimiter=',')
+
 
     main()
