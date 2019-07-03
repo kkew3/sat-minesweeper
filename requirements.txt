@@ -6,8 +6,6 @@ pylint
 pytest
 matplotlib
 opencv-python
-tqdm
-sympy
 pyautogui
 pyobjc-core
 pyobjc
