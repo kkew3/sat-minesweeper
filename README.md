@@ -14,7 +14,7 @@ It logs all events needed to reproduce the process.
 It automatically begins a new round whenever it loses or wins.
 And it records the winning rate.
 
-# How to use
+## How to use
 
 Open [freeminesweeper.org](http://www.freeminesweeper.org/minecore.html)'s minesweeper board page.
 Be sure to expose the entire board on screen.
@@ -37,7 +37,6 @@ Wait 10 seconds the computer will play on its own.
 
 Enjoy watching it playing!
 
-
 ## Mechanism
 
 The core mechanism is to convert current MineSweeper board into a CNF, and resort to [PicoSAT](http://fmv.jku.at/picosat/), a fast SAT solver, to get the solution (Now I use [MiniSAT](http://minisat.se/) instead).
@@ -54,7 +53,6 @@ Since there is either mine under a cell or no mine under the cell, the three var
 Thus we may enumerate all possible assignments to x1, x2, x3, and write them as DNF clauses.
 After that, we may convert DNF to CNF.
 Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
-
 
 ## Mechanism 2
 
