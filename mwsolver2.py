@@ -10,7 +10,7 @@ import pyautogui as pg
 import vboard as vb
 import multisatinfer
 
-PAUSE_AFTER_CLICK = 0.3
+PAUSE_AFTER_CLICK = 0.0
 
 
 def positive_int(string: str) -> int:
@@ -94,7 +94,7 @@ def main():
     scr = vb.make_screenshot()
     bdetector = vb.detect_board(scr)
     sdetector = vb.locate_smily(scr)
-    pool = multiprocessing.Pool(4)
+    #pool = multiprocessing.Pool(4)
 
     try:
         while True:
@@ -106,6 +106,7 @@ def main():
                 logger.info('Trying to click the face')
                 smily_loc = sdetector.get_smily_pixel_location()
                 mouse_clicker.click(smily_loc, False)
+                time.sleep(1)
                 logger.debug('Clicked face at %s', smily_loc)
                 scr = vb.make_screenshot()
                 stage = sdetector.get_game_stage(scr)
@@ -113,6 +114,7 @@ def main():
                     logger.info('Trying to click the face again')
                     smily_loc = sdetector.get_smily_pixel_location()
                     mouse_clicker.click(smily_loc, False)
+                    time.sleep(1)
                     logger.debug('Clicked face at %s', smily_loc)
                     scr = vb.make_screenshot()
                     stage = sdetector.get_game_stage(scr)
@@ -138,7 +140,7 @@ def main():
                         indexes = multisatinfer.build_index(board)
                         try:
                             deterministic, sol = multisatinfer.solve(
-                                cnf_tm, *indexes, pool=pool)
+                                cnf_tm, *indexes, pool=None)
                         except multisatinfer.NoSolutionError:
                             logger.warning('No solution was found; falling '
                                            'back to random guess')
@@ -158,7 +160,6 @@ def main():
                 logger.warning('Game lost unexpectedly')
                 stage = 'lost'
             finally:
-                pool.close()
                 round_total += 1
                 if stage == 'win':
                     round_win += 1
@@ -173,6 +174,8 @@ def main():
     except Exception:
         logger.exception('Unexpected exception')
     finally:
+        #pool.close()
+        pass
         logger.info('Process ended')
 
 
