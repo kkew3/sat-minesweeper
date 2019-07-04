@@ -24,11 +24,7 @@ def make_parser():
                     'result via stdout. An optional number of mines '
                     'remaining can be specified at the first line of the '
                     'CSV file by `#mines N\'.')
-    parser.add_argument('-C', '--confident-only', dest='confident_only',
-                        action='store_true',
-                        help='show only 100% confident decisions')
-    parser.add_argument('-f', dest='board_csv',
-                        help='CSV file describing the board')
+    parser.add_argument('board_csv', nargs='?', const=None, metavar='CSVFILE')
     return parser
 
 

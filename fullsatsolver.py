@@ -1,4 +1,4 @@
-import pdb
+import fileinput
 import logging
 import itertools
 import typing
@@ -92,7 +92,6 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
         vars_ = [qvar2vid[k] for k in sorted(qvar2vid)]
         clauses.update(map(tuple, pe(mine_remains, vars_)))
     clauses = list(map(list, clauses))
-    all_vars = sorted(set(map(abs, itertools.chain.from_iterable(clauses))))
     qvars = list(qvar2vid)
     logger.debug('Involved vars=%s, final clauses=%s', qvars, clauses)
     return qvars, clauses
@@ -196,7 +195,7 @@ def solve(board: np.ndarray, mines_remain: int = None):
         logger.info('Falling back to random guess')
         all_blocs = np.stack(np.where(board == CID['q']), axis=1)
         rand_bloc = all_blocs[np.random.randint(all_blocs.shape[0])]
-        rand_mine = 0  # if guess 1 it ends up mistaken but found after 
+        rand_mine = 0  # if guess 1 it ends up mistaken but found after
                        # several steps
         logger.info('Choosing: bloc=%s, mine_under=%s', rand_bloc, rand_mine)
         return np.concatenate((rand_bloc, [rand_mine]))[np.newaxis]
@@ -206,29 +205,34 @@ def solve(board: np.ndarray, mines_remain: int = None):
 
 def _main():
     args = sutils.make_parser().parse_args()
-    if args.board_csv:
-        infile = open(args.board_csv)
-    else:
-        infile = sys.stdin
-    with io.StringIO() as sbuf:
-        shutil.copyfileobj(infile, sbuf)
-        sbuf.seek(0)
-        firstline = sbuf.readline()
-        if firstline.startswith('#mines '):
-            mines_remain = int(firstline[len('#mines '):].rstrip())
-        else:
-            sbuf.seek(0)
-            mines_remain = None
-        board = np.loadtxt(sbuf, delimiter=',', dtype=np.int64)
-    if args.board_csv:
-        infile.close()
     try:
-        qidx_mine = solve(board, mines_remain)
-    except NoSolutionError:
-        print('NoSolutionError', file=sys.stderr)
-        sys.exit(1)
-    else:
-        np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
+        if args.board_csv:
+            infile = open(args.board_csv)
+        else:
+            infile = sys.stdin
+        with io.StringIO() as sbuf:
+            shutil.copyfileobj(infile, sbuf)
+            sbuf.seek(0)
+            firstline = sbuf.readline()
+            if firstline.startswith('#mines '):
+                mines_remain = int(firstline[len('#mines '):].rstrip())
+            else:
+                sbuf.seek(0)
+                mines_remain = None
+            board = np.loadtxt(sbuf, delimiter=',', dtype=np.int64)
+        if args.board_csv:
+            infile.close()
+        try:
+            qidx_mine = solve(board, mines_remain)
+        except NoSolutionError:
+            print('NoSolutionError', file=sys.stderr)
+            sys.exit(1)
+        else:
+            np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
+    except KeyboardInterrupt:
+        pass
+    except BrokenPipeError:
+        sys.stderr.close()
 
 
 if __name__ == '__main__':
