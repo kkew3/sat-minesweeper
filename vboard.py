@@ -15,8 +15,8 @@ import PIL.ImageGrab
 
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
+# deprecated
 FACE_TO_CID = dict(zip('012345678fmq', range(12)))
-KeyLineType = typing.Tuple[np.ndarray, np.ndarray]
 
 
 def normalize(image):
