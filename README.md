@@ -53,7 +53,7 @@ Thus we may enumerate all possible assignments to x1, x2, x3, and write them as 
 After that, we may convert DNF to CNF.
 Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
 
-In [`fullsatsolver.py`](fullsatsolver.py), I uses a form of SAT encoding of cardinality constraints, greatly reducing the number of CNF clauses, removing the need to precompute DNF-to-CNF conversions, yet at the expense of introducing some auxiliary boolean variables.
+In [`fullsatsolver.py`](fullsatsolver.py), I use a form of SAT encoding of cardinality constraints, greatly reducing the number of CNF clauses, removing the need to precompute DNF-to-CNF conversions, yet at the expense of introducing some auxiliary boolean variables.
 I take into account the number of mines remaining as soon as it's no longer intractable, giving higher accuracy.
 
 ## Future works
