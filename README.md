@@ -25,11 +25,10 @@ python3 -m virtualenv rt
 . rt/bin/activate
 pip install -r requirements.txt
 
-# for old solver which might hangs halfway
-#python mwsolver.py
+python mwsolver.py
 
-# for latest solver
-python mwsolver2.py
+# or perform a one-step solution given a board
+#python fullsatsolver.py example_boards/2.csv
 ```
 
 Again, be sure not to overlap the Terminal window with the board.
@@ -54,12 +53,8 @@ Thus we may enumerate all possible assignments to x1, x2, x3, and write them as 
 After that, we may convert DNF to CNF.
 Although it's NP-complete, we can [precompute DNF-to-CNF templates](data/MakeCNFTable.java) and look up the template library in runtime, of which the time consumption is negligible.
 
-## Mechanism 2
-
-This is and amendment to previous solution, coded in `multisatinfer.py` and `mwsolver2.py`.
-There was problem where it takes too long to enumerate all possible SAT assignments.
-Now I compute SAT problem only on 5x5 sub-board neighborhood everywhere, which effectively reduce the complexity to solve each SAT problem.
-No more hangs now during runtime, even when solving 40x80 (660 mines) board.
+In [`fullsatsolver.py`](fullsatsolver.py), I uses a form of SAT encoding of cardinality constraints, greatly reducing the number of CNF clauses, removing the need to precompute DNF-to-CNF conversions, yet at the expense of introducing some auxiliary boolean variables.
+I take into account the number of mines remaining as soon as it's no longer intractable, giving higher accuracy.
 
 ## Future works
 
