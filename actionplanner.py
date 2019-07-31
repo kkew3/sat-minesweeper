@@ -21,13 +21,30 @@ class MouseClicker:
         pg.click(button=button)
 
 
-class PlainActionPlanner:
+class ActionPlanner:
     def __init__(self, delay_after: float, bdetector: vb.BoardLocator,
                  sdetector: vb.SmilyDetector):
         self.mc = MouseClicker()
         self.delay_after = delay_after
         self.bd = bdetector
         self.sd = sdetector
+
+    def click_smily_and_check_stage(self):
+        sloc = self.sd.get_smily_pixel_location()
+        self.mc.click(sloc, True)
+        time.sleep(0.5)
+        scr = vb.make_screenshot()
+        stage = self.sd.get_game_stage(scr)
+        return stage
+
+    def click_mines(self, qidx_mine):
+        raise NotImplementedError
+
+
+class PlainActionPlanner(ActionPlanner):
+    def __init__(self, delay_after: float, bdetector: vb.BoardLocator,
+                 sdetector: vb.SmilyDetector):
+        super().__init__(delay_after, bdetector, sdetector)
 
     def click_mines(self, qidx_mine):
         blocs = np.ravel_multi_index(qidx_mine[:,:2].T,
@@ -37,10 +54,16 @@ class PlainActionPlanner:
             self.mc.click(ploc, not bool(mine_under))
         time.sleep(self.delay_after)
 
-    def click_smily_and_check_stage(self):
-        sloc = self.sd.get_smily_pixel_location()
-        self.mc.click(sloc, True)
-        time.sleep(0.5)
-        scr = vb.make_screenshot()
-        stage = self.sd.get_game_stage(scr)
-        return stage
+
+class AreaOpenActionPlanner(ActionPlanner):
+    """
+    Note on "AreaOpen": Clicking on numbered/satisfied square will open
+    all its neighbors.
+    """
+    def __init__(self, delay_after: float, bdetector: vb.BoardLocator,
+                 sdetector: vb.SmilyDetector):
+        super().__init__(delay_after, bdetector, sdetector)
+
+    def click_mines(self, board, qidx_mine):
+        # TODO
+        pass
