@@ -5,6 +5,7 @@ ipython
 pylint
 pytest
 matplotlib
+networkx
 opencv-python
 pyautogui
 pyobjc-core
