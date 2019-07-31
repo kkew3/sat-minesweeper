@@ -5,6 +5,7 @@ expected underneath. It should have little integration with the vision and
 the mouse action simulation modules.
 """
 
+import pdb
 import argparse
 import fileinput
 import itertools
@@ -37,7 +38,7 @@ class EmptyCsvError(Exception): pass
 
 
 def read_board(board_csv):
-    with fileinput.input(board_csv) as infile:
+    with fileinput.input(board_csv if board_csv[0] else None) as infile:
         try:
             firstline = next(infile)
         except StopIteration:
