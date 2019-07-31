@@ -1,9 +1,7 @@
-import fileinput
 import logging
 import itertools
 import typing
 import sys
-import io
 import shutil
 
 import numpy as np
@@ -210,16 +208,14 @@ def _main():
             infile = open(args.board_csv)
         else:
             infile = sys.stdin
-        with io.StringIO() as sbuf:
-            shutil.copyfileobj(infile, sbuf)
-            sbuf.seek(0)
-            firstline = sbuf.readline()
-            if firstline.startswith('#mines '):
-                mines_remain = int(firstline[len('#mines '):].rstrip())
-            else:
-                sbuf.seek(0)
-                mines_remain = None
-            board = np.loadtxt(sbuf, delimiter=',', dtype=np.int64)
+        infile_ = infile
+        firstline = infile_.readline()
+        if firstline.startswith('#mines '):
+            mines_remain = int(firstline[len('#mines '):].rstrip())
+        else:
+            infile_ = itertools.chain([firstline], infile_)
+            mines_remain = None
+            board = np.loadtxt(infile_, delimiter=',', dtype=np.int64)
         if args.board_csv:
             infile.close()
         try:
