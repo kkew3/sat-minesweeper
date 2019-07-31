@@ -6,6 +6,8 @@ the mouse action simulation modules.
 """
 
 import argparse
+import fileinput
+import itertools
 
 import numpy as np
 
@@ -24,8 +26,29 @@ def make_parser():
                     'result via stdout. An optional number of mines '
                     'remaining can be specified at the first line of the '
                     'CSV file by `#mines N\'.')
-    parser.add_argument('board_csv', nargs='?', const=None, metavar='CSVFILE')
+    parser.add_argument('board_csv', action='append', nargs='?',
+                        metavar='CSVFILE',
+                        help='the CSV file describing the board, or omitted '
+                             'to read from stdin')
     return parser
+
+
+class EmptyCsvError(Exception): pass
+
+
+def read_board(board_csv):
+    with fileinput.input(board_csv) as infile:
+        try:
+            firstline = next(infile)
+        except StopIteration:
+            raise EmptyCsvError
+        if firstline.startswith('#mines '):
+            mines_remain = int(firstline[len('#mines '):].rstrip())
+        else:
+            infile = itertools.chain([firstline], infile)
+            mines_remain = None
+        board = np.loadtxt(infile, delimiter=',', dtype=np.int64)
+    return board, mines_remain
 
 
 def select_results(results, confidence):

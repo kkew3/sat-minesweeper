@@ -204,25 +204,16 @@ def solve(board: np.ndarray, mines_remain: int = None):
 def _main():
     args = sutils.make_parser().parse_args()
     try:
-        if args.board_csv:
-            infile = open(args.board_csv)
-        else:
-            infile = sys.stdin
-        infile_ = infile
-        firstline = infile_.readline()
-        if firstline.startswith('#mines '):
-            mines_remain = int(firstline[len('#mines '):].rstrip())
-        else:
-            infile_ = itertools.chain([firstline], infile_)
-            mines_remain = None
-            board = np.loadtxt(infile_, delimiter=',', dtype=np.int64)
-        if args.board_csv:
-            infile.close()
+        try:
+            board, mines_remain = sutils.read_board(args.board_csv)
+        except sutils.EmptyCsvError:
+            print('EmptyCsvError', file=sys.stderr)
+            sys.exit(4)
         try:
             qidx_mine = solve(board, mines_remain)
         except NoSolutionError:
             print('NoSolutionError', file=sys.stderr)
-            sys.exit(1)
+            sys.exit(8)
         else:
             np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
     except KeyboardInterrupt:
