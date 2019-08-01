@@ -7,8 +7,9 @@ import itertools
 import numpy as np
 
 import vboard as vb
-import fullsatsolver as satsolver
+import fullsatsolver as solver
 import actionplanner as planner
+import solverutils as sutils
 
 
 class GameWontBeginError(Exception):
@@ -26,6 +27,21 @@ def make_parser():
     return parser
 
 
+class BoardFlagModifier:
+    def __init__(self):
+        self.solutions = {}
+
+    def __call__(self, prev_qidx_mine, board):
+        if prev_qidx_mine is not None:
+            board = np.copy(board)
+            for x, y, m in prev_qidx_mine:
+                self.solutions[x, y] = m
+            for (x, y), m in self.solutions.items():
+                if m:
+                    board[x, y] = sutils.CID['f']
+        return board
+
+
 def main():
     args = make_parser().parse_args()
     logging.config.fileConfig('logging.ini')
@@ -38,7 +54,7 @@ def main():
     cd = vb.CellDetector()
     sd = vb.locate_smily(scr)
     md = vb.locate_mine_monitor(bd, sd, scr)
-    pl = planner.PlainActionPlanner(0.0, bd, sd)
+    pl = planner.NoFlagActionPlanner(0.0, bd, sd)
 
     mine_remains = md(scr_gray)
 
@@ -64,12 +80,15 @@ def main():
                     raise GameWontBeginError
             try:
                 step = 0
+                bfm = BoardFlagModifier()
+                solutions = None
                 while stage == 'ongoing':
                     cells = bd.as_cells(scr)
                     board = np.array(cd(cells)).reshape((bd.height, bd.width))
+                    board = bfm(solutions, board)
                     logger.debug('Detected board: %s', board.tolist())
-                    solutions = satsolver.solve(board, mine_remains)
-                    pl.click_mines(solutions)
+                    solutions = solver.solve(board, mine_remains)
+                    pl.click_mines(board, solutions)
                     step += 1
 
                     scr_gray = vb.make_screenshot(bw=False)
@@ -84,7 +103,7 @@ def main():
     except KeyboardInterrupt:
         pass
     except (vb.BoardNotFoundError, vb.KeyLinesNotFoundError,
-            GameWontBeginError, satsolver.NoSolutionError):
+            GameWontBeginError,  solver.NoSolutionError):
         logger.exception('')
     except Exception:
         logger.exception('Unexpected exception')

@@ -37,7 +37,7 @@ class ActionPlanner:
         stage = self.sd.get_game_stage(scr)
         return stage
 
-    def click_mines(self, qidx_mine):
+    def click_mines(self, board, qidx_mine):
         raise NotImplementedError
 
 
@@ -46,12 +46,27 @@ class PlainActionPlanner(ActionPlanner):
                  sdetector: vb.SmilyDetector):
         super().__init__(delay_after, bdetector, sdetector)
 
-    def click_mines(self, qidx_mine):
+    def click_mines(self, board, qidx_mine):
         blocs = np.ravel_multi_index(qidx_mine[:,:2].T,
                                      (self.bd.height, self.bd.width))
         for bloc, mine_under in zip(blocs, qidx_mine[:,2]):
             ploc = vb.cellid_as_pixelloc(self.bd, bloc)
             self.mc.click(ploc, not bool(mine_under))
+        time.sleep(self.delay_after)
+
+
+class NoFlagActionPlanner(ActionPlanner):
+    def __init__(self, delay_after: float, bdetector: vb.BoardLocator,
+                 sdetector: vb.SmilyDetector):
+        super().__init__(delay_after, bdetector, sdetector)
+
+    def click_mines(self, board, qidx_mine):
+        blocs = np.ravel_multi_index(qidx_mine[:,:2].T,
+                                     (self.bd.height, self.bd.width))
+        for bloc, mine_under in zip(blocs, qidx_mine[:,2]):
+            if not mine_under:
+                ploc = vb.cellid_as_pixelloc(self.bd, bloc)
+                self.mc.click(ploc, True)
         time.sleep(self.delay_after)
 
 
@@ -66,4 +81,4 @@ class AreaOpenActionPlanner(ActionPlanner):
 
     def click_mines(self, board, qidx_mine):
         # TODO
-        pass
+        raise NotImplementedError
