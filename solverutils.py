@@ -5,7 +5,7 @@ expected underneath. It should have little integration with the vision and
 the mouse action simulation modules.
 """
 
-import pdb
+import sys
 import argparse
 import fileinput
 import itertools
@@ -23,6 +23,7 @@ CID = {
 
 def make_parser():
     parser = argparse.ArgumentParser(
+        prog='python ' + sys.argv[0],
         description='Solves the mine board provided via stdin and gives the '
                     'result via stdout. An optional number of mines '
                     'remaining can be specified at the first line of the '
