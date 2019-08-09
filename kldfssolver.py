@@ -26,6 +26,10 @@ MAX_ITER = 2 ** 24  # takes approximately 1 second
 NCKProblem = collections.namedtuple('NCKProblem', 'vars k')
 
 
+# a placeholder
+class NoSolutionError(Exception): pass
+
+
 def encode_board_as_nckproblems(board, mines_remain):
     vartable = np.arange(board.size).reshape(board.shape)
     problems = []
@@ -41,8 +45,8 @@ def encode_board_as_nckproblems(board, mines_remain):
             ))
             assert problems[-1].k >= 0, problems[-1]
     if mines_remain is not None:
-        mproblem = NCKProblem(vars=tuple(vbox[sx, sy] for sx, sy in
-                                         zip(*np.where(box == CID['q']))),
+        mproblem = NCKProblem(vars=tuple(vartable[sx, sy] for sx, sy in
+                                         zip(*np.where(board == CID['q']))),
                               k=mines_remain)
     else:
         mproblem = None
@@ -123,9 +127,10 @@ def solve_problems_graph(graph, max_vars, max_iter, solutions, confidences):
     for p, mr in dict(graph.nodes(data='mr')).items():
         if mr and len(p.vars) > max_vars:
             to_remove = p
-            break
         if not mr:
             at_least_one_nonmproblem = True
+            if to_remove is not None:
+                break
     if to_remove and at_least_one_nonmproblem:
         logger.warning('Removed mines_remain problem %s due to exceeding '
                        'n_vars limit (%d > %d)',
@@ -191,6 +196,7 @@ def solve_problems(problems, max_iter):
     candidate_solutions = np.array(candidate_solutions)
     probs = np.sum(candidate_solutions, axis=0) / candidate_solutions.shape[0]
 
+    # FIXME `candidate_solutions` is likely to be [], causing NaN here
     solutions = dict(zip(varlist, map(bool, probs >= 0.5)))
     confidence = dict(zip(varlist, np.maximum(probs, 1 - probs).tolist()))
     return solutions, confidence
@@ -199,7 +205,7 @@ def solve_problems(problems, max_iter):
 def solve(board, mines_remain):
     logger = logging.getLogger(__name__ + '.solve')
     problems, mproblem = encode_board_as_nckproblems(board, mines_remain)
-    if not any((problems, mproblem)):
+    if not any((problems, mproblem)) or np.all(board == CID['q']):
         logger.info('Performing random guess due to lack to NCK constraints')
         randbloc = np.unravel_index(np.random.randint(board.size), board.shape)
         return np.concatenate((randbloc, [0]))[np.newaxis]
