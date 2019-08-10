@@ -18,10 +18,8 @@ import numpy as np
 import solverutils as sutils
 from solverutils import CID
 
-
 MAX_VARS = 32
 MAX_ITER = 2 ** 24  # takes approximately 1 second
-
 
 NCKProblem = collections.namedtuple('NCKProblem', 'vars k')
 
@@ -34,8 +32,8 @@ def encode_board_as_nckproblems(board, mines_remain):
     vartable = np.arange(board.size).reshape(board.shape)
     problems = []
     for x, y in zip(*np.where((board >= 1) & (board <= 8))):
-        box = board[max(0, x-1):x+2, max(0, y-1):y+2]
-        vbox = vartable[max(0, x-1):x+2, max(0, y-1):y+2]
+        box = board[max(0, x - 1):x + 2, max(0, y - 1):y + 2]
+        vbox = vartable[max(0, x - 1):x + 2, max(0, y - 1):y + 2]
         if np.sum(box == CID['q']) > 0:
             problems.append(NCKProblem(
                 vars=tuple(vbox[sx, sy] for sx, sy in
@@ -152,13 +150,14 @@ def solve_problems_graph(graph, max_vars, max_iter, solutions, confidences):
                 confidences.update(confs)
 
 
-#@profile
 def _check_validity_trace(vars2problems, trace):
     """
     Returns ``False`` if not valid; returns ``True`` if valid or not sure.
     """
     trace = dict(trace)
-    involved_problems = functools.reduce(operator.or_, (set(vars2problems[v]) for v in trace), set())
+    involved_problems = functools.reduce(operator.or_,
+                                         (set(vars2problems[v]) for v in
+                                          trace), set())
     for p in involved_problems:
         try:
             if sum(trace[v] for v in p.vars) != p.k:
@@ -211,7 +210,7 @@ def solve(board, mines_remain):
         return np.concatenate((randbloc, [0]))[np.newaxis]
 
     solutions, confidences, problems, mproblem = \
-            simple_solve_attempt(problems, mproblem)
+        simple_solve_attempt(problems, mproblem)
     pgraph = make_problem_graph(problems, mproblem)
     solve_problems_graph(pgraph, MAX_VARS, MAX_ITER, solutions, confidences)
     varlist = list(solutions)
