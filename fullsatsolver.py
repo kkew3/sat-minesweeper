@@ -2,7 +2,6 @@ import logging
 import itertools
 import typing
 import sys
-import shutil
 
 import numpy as np
 from pysat.card import CardEnc
