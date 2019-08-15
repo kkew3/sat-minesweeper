@@ -58,9 +58,6 @@ I take into account the number of mines remaining as soon as it's no longer intr
 
 ## Future works
 
-- An assumption is not taken into consideration, that all remaining uncovered cells have in total `M` mines, where `M` is the number appearing in the upper left of the board.
-  Since it changes all the time, recognizing automatically, if not impossible, would be more difficult than template matching.
-  Missing such assumption sometimes makes the solver guess poorly in the very last few steps of a round.
 - [Patterns](http://www.minesweeper.info/wiki/Strategy) used by human experts are not taken into consideration.
   These patterns are often not derived from current board and the MineSweeper's rules, e.g. the `1-2-1` pattern.
   Since this work requires some tedious pattern recognition code, I didn't put it into this first release.
