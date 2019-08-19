@@ -1,7 +1,6 @@
 numpy
 scipy
 Pillow
-ipython
 pylint
 pytest
 matplotlib
@@ -11,3 +10,6 @@ pyautogui
 pyobjc-core
 pyobjc
 python-sat
+
+# dev purpose
+jupyter
