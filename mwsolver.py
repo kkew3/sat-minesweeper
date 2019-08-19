@@ -5,6 +5,7 @@ import logging.config
 import itertools
 
 import numpy as np
+from PIL.ImageGrab import grab as make_screenshot
 
 import vboard as vb
 import fullsatsolver as solver
@@ -21,9 +22,6 @@ def make_parser():
     parser.add_argument('-D', dest='delay_before', type=int, default=10,
                         help='seconds to wait before each round; default to '
                              '%(default)s seconds')
-    parser.add_argument('-n', dest='rounds', type=int,
-                        help='number of rounds to play; default to forever '
-                             'until interrupted')
     return parser
 
 
@@ -42,68 +40,54 @@ class BoardFlagModifier:
         return board
 
 
+def identify_stage(board):
+    if np.sum(board == sutils.CID['m']) > 0:
+        return 'lost'
+    if np.sum(board == sutils.CID['q']) == 0:
+        return 'win'
+    return 'ongoing'
+
+
 def main():
     args = make_parser().parse_args()
     logging.config.fileConfig('logging.ini')
     logger = logging.getLogger()
 
-    scr_gray = vb.make_screenshot(bw=False)
-    scr = vb.tobw(scr_gray)
-
-    bd = vb.detect_board(scr)
-    cd = vb.CellDetector()
-    sd = vb.locate_smily(scr)
-    md = vb.locate_mine_monitor(bd, sd, scr)
-    pl = planner.NoFlagActionPlanner(0.0, bd, sd)
-
-    mine_remains = md(scr_gray)
-
-    round_total = 0
-    round_win = 0
+    scr = np.array(make_screenshot().convert('L'))
+    bd = vb.BoardDetector.new(scr)
+    pl = planner.NoFlagActionPlanner(0.0, bd)
 
     logger.info('Process begun')
     try:
-        for _ in itertools.count(args.rounds):
-            logger.info('Waiting %d seconds before current round',
-                        args.delay_before)
-            time.sleep(args.delay_before)
+        logger.info('Waiting %d seconds before current round',
+                    args.delay_before)
+        time.sleep(args.delay_before)
 
-            scr_gray = vb.make_screenshot(bw=False)
-            scr = vb.tobw(scr_gray)
-            stage = sd.get_game_stage(scr)
-            mine_remains = md(scr_gray)
+        scr = np.array(make_screenshot().convert('L'))
+        board, mine_remains = bd.recognize_board_and_mr(scr)
+        stage = identify_stage(board)
 
-            if stage != 'ongoing':
-                for _ in range(2):
-                    stage = pl.click_smily_and_check_stage()
-                if stage != 'ongoing':
-                    raise GameWontBeginError
-            try:
-                step = 0
-                bfm = BoardFlagModifier()
-                solutions = None
-                while stage == 'ongoing':
-                    cells = bd.as_cells(scr)
-                    board = np.array(cd(cells)).reshape((bd.height, bd.width))
-                    board = bfm(solutions, board)
-                    logger.debug('Detected board: %s', board.tolist())
-                    solutions = solver.solve(board, mine_remains)
-                    pl.click_mines(board, solutions)
-                    step += 1
+        if stage != 'ongoing':
+            raise GameWontBeginError('game hasn\'t begun yet')
+        try:
+            step = 0
+            bfm = BoardFlagModifier()
+            solutions = None
+            while stage == 'ongoing':
+                board = bfm(solutions, board)
+                logger.debug('Detected board: %s', board.tolist())
+                solutions = solver.solve(board, mine_remains)
+                pl.click_mines(board, solutions)
+                step += 1
 
-                    scr_gray = vb.make_screenshot(bw=False)
-                    scr = vb.tobw(scr_gray)
-                    stage = sd.get_game_stage(scr)
-                    mine_remains = md(scr_gray)
-            finally:
-                logger.info('Stage: %s', stage)
-                round_total += 1
-                if stage == 'win':
-                    round_win += 1
+                scr = np.array(make_screenshot().convert('L'))
+                board, mine_remains = bd.recognize_board_and_mr(scr)
+                stage = identify_stage(board)
+        finally:
+            logger.info('Stage: %s', stage)
     except KeyboardInterrupt:
         pass
-    except (vb.BoardNotFoundError, vb.KeyLinesNotFoundError,
-            GameWontBeginError,  solver.NoSolutionError):
+    except (vb.BoardNotFoundError, GameWontBeginError, solver.NoSolutionError):
         logger.exception('')
     except Exception:
         logger.exception('Unexpected exception')
