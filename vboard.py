@@ -77,12 +77,19 @@ class BoardDetector:
         - ``width``: the number of cells along each row (readonly)
         - ``hkls``: horizontal key lines of the cell board
         - ``vkls``: vertical key lines of the cell board
+
+    Below attributes may be ``None`` if ``enable_mr_detect=False`` when
+    ``new``:
+
         - ``upper_mr``: the smallest y coordinate of the remaining mines label
         - ``lower_mr``: the largest y coordinate of the remaining mines label
         - ``left_mr``: the smallest x coordinate of the remaining mines label
         - ``right_mr``: the largest x coordinate of the remaining mines label
     """
     def __init__(self, hkls, vkls, upper_mr, lower_mr, left_mr, right_mr):
+        """
+        This method shouldn't be called explicitly.
+        """
         # the cell board key lines
         self.hkls = hkls
         self.vkls = vkls
@@ -177,12 +184,13 @@ class BoardDetector:
                 'right_mr={0.right_mr!r})'.format(self))
 
     @classmethod
-    def new(cls, screenshot: np.ndarray):
+    def new(cls, screenshot: np.ndarray, enable_mr_detect=False):
         """
         Returns a new instance of ``BoardDetector`` from ``screenshot``.
 
         :param screenshot: the uint8 grayscale screenshot containing an empty
                board
+        :param enable_mr_detect: if ``True``, enable mines remaining detection
         :return: a ``BoardDetector`` object
         :raise BoardNotFoundError:
         """
@@ -232,6 +240,8 @@ class BoardDetector:
             vkls,
             [vkls[-1] + (vkls[-1] - vkls[-2])],
         )) + 1
+        if not enable_mr_detect:
+            return cls(hkls, vkls, None, None, None, None)
 
         left = vkls[0]
         right = vkls[-1]
@@ -297,7 +307,21 @@ class BoardDetector:
         return np.dot(digits, MR_UNITS)
 
     def localize_board_and_mr(self, screenshot):
+        """
+        Returns ``(cell_board_image, mine_remaining_image)`` if
+        ``enable_mr_detect`` was ``True`` when calling ``new`` to construct
+        this ``BoardDetector``; otherwise, returns
+        ``(cell_board_image, None)``.
+        """
         # yapf: disable
+        if self.upper_mr is None:
+            return (
+                # cell board
+                screenshot[self.upper:self.lower,
+                           self.left:self.right],
+                # mine remaining label
+                None,
+            )
         return (
             # cell board
             screenshot[self.upper:self.lower,
@@ -393,7 +417,8 @@ def _main():
     if args.empty_board:
         args.empty_board = np.array(Image.open(args.empty_board).convert('L'))
     bd = BoardDetector.new(
-        args.empty_board if args.empty_board is not None else args.image)
+        args.empty_board if args.empty_board is not None else args.image,
+        enable_mr_detect=args.mr_tofile or args.mrnum)
     boardimg, mrimg = bd.localize_board_and_mr(args.image)
     if args.board_tofile:
         Image.fromarray(boardimg).save(args.board_tofile)
