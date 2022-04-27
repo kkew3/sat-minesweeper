@@ -196,7 +196,7 @@ class BoardDetector:
         """
         # LOCALIZE CELL BOARD
         crosstmpl = loadimg('b_crs.png')
-        DOTS_TOL = 500
+        DOTS_TOL = 250
         mmr = cv2.matchTemplate(screenshot, crosstmpl,
                                 cv2.TM_SQDIFF) <= DOTS_TOL
         dots = np.stack(np.nonzero(mmr), axis=1)
