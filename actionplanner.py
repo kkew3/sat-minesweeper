@@ -31,7 +31,7 @@ class MouseClicker:
 
 
 class ActionPlanner:
-    def __init__(self, delay_after: float, bdetector: vb.BoardLocator):
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
         self.mc = MouseClicker()
         self.delay_after = delay_after
         self.bd = bdetector
@@ -41,7 +41,7 @@ class ActionPlanner:
 
 
 class PlainActionPlanner(ActionPlanner):
-    def __init__(self, delay_after: float, bdetector: vb.BoardLocator):
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
         super().__init__(delay_after, bdetector)
 
     def click_mines(self, board, qidx_mine):
@@ -54,7 +54,7 @@ class PlainActionPlanner(ActionPlanner):
 
 
 class NoFlagActionPlanner(ActionPlanner):
-    def __init__(self, delay_after: float, bdetector: vb.BoardLocator):
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
         super().__init__(delay_after, bdetector)
 
     def click_mines(self, board, qidx_mine):
@@ -67,12 +67,12 @@ class NoFlagActionPlanner(ActionPlanner):
         time.sleep(self.delay_after)
 
 
-class AreaOpenActionPlanner(ActionPlanner):
+class ChordActionPlanner(ActionPlanner):
     """
-    Note on "AreaOpen": Clicking on numbered/satisfied square will open
+    Note on "Chord": Clicking on numbered/satisfied square will open
     all its neighbors.
     """
-    def __init__(self, delay_after: float, bdetector: vb.BoardLocator):
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
         super().__init__(delay_after, bdetector)
 
     def click_mines(self, board, qidx_mine):
