@@ -413,7 +413,11 @@ def _main():
     if args.image:
         args.image = np.array(Image.open(args.image).convert('L'))
     else:
-        args.image = np.array(ImageGrab.grab().convert('L'))
+        #args.image = np.array(ImageGrab.grab().convert('L'))
+        with mss.mss() as sct:
+            sct_img = sct.grab(sct.monitors[1])
+        args.image = np.array(Image.frombytes(
+            'RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX').convert('L'))
     if args.empty_board:
         args.empty_board = np.array(Image.open(args.empty_board).convert('L'))
     bd = BoardDetector.new(
@@ -439,5 +443,5 @@ def _main():
 
 if __name__ == '__main__':
     import argparse
-    import PIL.ImageGrab as ImageGrab
+    import mss
     _main()

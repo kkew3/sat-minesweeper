@@ -2,10 +2,10 @@ import argparse
 import time
 import logging
 import logging.config
-import itertools
 
 import numpy as np
-from PIL.ImageGrab import grab as make_screenshot
+import PIL.Image as Image
+import mss
 
 import vboard as vb
 import fullsatsolver as solver
@@ -48,52 +48,59 @@ def identify_stage(board):
     return 'ongoing'
 
 
+def make_screenshot(sct):
+    img = sct.grab(sct.monitors[1])
+    img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
+    return img
+
+
 def main():
     args = make_parser().parse_args()
     logging.config.fileConfig('logging.ini')
     logger = logging.getLogger()
 
-    scr = np.array(make_screenshot().convert('L'))
-    bd = vb.BoardDetector.new(scr)
-    pl = planner.NoFlagActionPlanner(0.0, bd)
+    with mss.mss() as sct:
+        scr = np.array(make_screenshot(sct).convert('L'))
+        bd = vb.BoardDetector.new(scr)
+        pl = planner.NoFlagActionPlanner(0.0, bd)
 
-    logger.info('Process begun')
-    try:
-        logger.info('Waiting %d seconds before current round',
-                    args.delay_before)
-        time.sleep(args.delay_before)
-
-        scr = np.array(make_screenshot().convert('L'))
-        board, mine_remains = bd.recognize_board_and_mr(scr)
-        stage = identify_stage(board)
-
-        if stage != 'ongoing':
-            raise GameWontBeginError('game hasn\'t begun yet')
+        logger.info('Process begun')
         try:
-            step = 0
-            bfm = BoardFlagModifier()
-            solutions = None
-            while stage == 'ongoing':
-                board = bfm(solutions, board)
-                logger.debug('Detected board: %s', board.tolist())
-                solutions = solver.solve(board, mine_remains)
-                pl.click_mines(board, solutions)
-                step += 1
+            logger.info('Waiting %d seconds before current round',
+                        args.delay_before)
+            time.sleep(args.delay_before)
 
-                scr = np.array(make_screenshot().convert('L'))
-                board, mine_remains = bd.recognize_board_and_mr(scr)
-                stage = identify_stage(board)
+            scr = np.array(make_screenshot(sct).convert('L'))
+            board, mine_remains = bd.recognize_board_and_mr(scr)
+            stage = identify_stage(board)
+
+            if stage != 'ongoing':
+                raise GameWontBeginError('game hasn\'t begun yet')
+            try:
+                step = 0
+                bfm = BoardFlagModifier()
+                solutions = None
+                while stage == 'ongoing':
+                    board = bfm(solutions, board)
+                    logger.debug('Detected board: %s', board.tolist())
+                    solutions = solver.solve(board, mine_remains)
+                    pl.click_mines(board, solutions)
+                    step += 1
+
+                    scr = np.array(make_screenshot(sct).convert('L'))
+                    board, mine_remains = bd.recognize_board_and_mr(scr)
+                    stage = identify_stage(board)
+            finally:
+                logger.info('Stage: %s', stage)
+        except KeyboardInterrupt:
+            pass
+        except (vb.BoardNotFoundError, GameWontBeginError,
+                solver.NoSolutionError):
+            logger.exception('')
+        except Exception:
+            logger.exception('Unexpected exception')
         finally:
-            logger.info('Stage: %s', stage)
-    except KeyboardInterrupt:
-        pass
-    except (vb.BoardNotFoundError, GameWontBeginError, solver.NoSolutionError):
-        logger.exception('')
-    except Exception:
-        logger.exception('Unexpected exception')
-    finally:
-        logger.info('Process ended')
-        pass
+            logger.info('Process ended')
 
 
 if __name__ == '__main__':

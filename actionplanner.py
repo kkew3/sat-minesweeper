@@ -3,14 +3,23 @@ import time
 
 import numpy as np
 import pyautogui as pg
+import PIL.Image as Image
+import mss
 
 import vboard as vb
 
 
+def make_screenshot(sct):
+    img = sct.grab(sct.monitors[1])
+    img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
+    return img
+
+
 class MouseClicker:
     def __init__(self):
-        scr = vb.make_screenshot(bw=False)
-        self.screenshot_wh = scr.shape[::-1]
+        with mss.mss() as sct:
+            scr = make_screenshot(sct)
+        self.screenshot_wh = scr.width, scr.height
         self.screen_wh = tuple(pg.size())
 
     def click(self, ploc: typing.Tuple[int, int], leftbutton: bool):

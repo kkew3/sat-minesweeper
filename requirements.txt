@@ -10,6 +10,8 @@ pyautogui
 pyobjc-core
 pyobjc
 python-sat
+mss
 
 # dev purpose
 jupyter
+line_profiler
