@@ -18,11 +18,14 @@ def _l(*args):
     return logging.getLogger('.'.join((__name__,) + args))
 
 
+# pylint: disable=too-few-public-methods
 class NCKProblemEncoder:
     def __init__(self, n_vars_total: int) -> None:
         self.s1 = n_vars_total + 1
         self.logger = _l(NCKProblemEncoder.__name__)
 
+    # TODO there may be some redundant code during encoding because I didn't
+    #      read much into `pysat.card.CardEnc.equals`'s documentation
     def __call__(self, k, vars_):
         assert max(map(abs, vars_)) < self.s1, 'max vars exceeded nvars_total'
         assert len(vars_) == len(set(vars_)), 'vars_ element must be unique'
@@ -63,7 +66,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     if mine_remains is None:
         for x, y in zip(*np.where(board == CID['q'])):
             surr = boxof(board, (x, y))
-            if np.sum((surr >= 1) & (surr <= 8)) > 0:
+            if np.any((surr >= 1) & (surr <= 8)):
                 v = int(vartable[x, y])
                 qvars_to_use.append(v)
     else:
@@ -96,6 +99,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
 
 class TooManySolutionsError(Exception):
     def __init__(self, solutions):
+        super().__init__()
         self.solutions = solutions
 
 
