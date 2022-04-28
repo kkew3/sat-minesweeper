@@ -1,9 +1,8 @@
 import typing
 import time
 
-import numpy as np
 import pyautogui as pg
-import PIL.Image as Image
+from PIL import Image
 import mss
 
 import vboard as vb
@@ -15,6 +14,7 @@ def make_screenshot(sct):
     return img
 
 
+# pylint: disable=too-few-public-methods
 class MouseClicker:
     def __init__(self):
         with mss.mss() as sct:
@@ -30,40 +30,44 @@ class MouseClicker:
         pg.click(button=button)
 
 
+# pylint: disable=too-few-public-methods
 class ActionPlanner:
     def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
         self.mc = MouseClicker()
         self.delay_after = delay_after
         self.bd = bdetector
 
-    def click_mines(self, board, qidx_mine):
+    def click_mines(self, board, qidx_mine) -> None:
+        """
+        Uncover cells using ``MouseClicker`` according to the solutions
+        ``qidx_mine``.
+
+        :param board: the board
+        :param qidx_mine: of form array([[bx0, by0, m0], [bx1, by1, m1], ...])
+               where bxi is the x board coordinate, byi the y board coordinate,
+               mi 0 if there's no mine under else 1
+        """
         raise NotImplementedError
 
 
+# pylint: disable=too-few-public-methods
 class PlainActionPlanner(ActionPlanner):
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
-        super().__init__(delay_after, bdetector)
-
-    def click_mines(self, board, qidx_mine):
-        blocs = np.ravel_multi_index(qidx_mine[:, :2].T,
-                                     (self.bd.height, self.bd.width))
-        for bloc, mine_under in zip(blocs, qidx_mine[:, 2]):
-            ploc = vb.cellid_as_pixelloc(self.bd, bloc)
-            self.mc.click(ploc, not bool(mine_under))
+    def click_mines(self, _board, qidx_mine):
+        blocs = qidx_mine[:, 0], qidx_mine[:, 1]
+        plocs_x, plocs_y = self.bd.boardloc_as_pixelloc(blocs)
+        for px, py, mine_under in zip(plocs_x, plocs_y, qidx_mine[:, 2]):
+            self.mc.click((px, py), not bool(mine_under))
         time.sleep(self.delay_after)
 
 
+# pylint: disable=too-few-public-methods
 class NoFlagActionPlanner(ActionPlanner):
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
-        super().__init__(delay_after, bdetector)
-
-    def click_mines(self, board, qidx_mine):
-        blocs = np.ravel_multi_index(qidx_mine[:, :2].T,
-                                     (self.bd.height, self.bd.width))
-        for bloc, mine_under in zip(blocs, qidx_mine[:, 2]):
+    def click_mines(self, _board, qidx_mine):
+        blocs = qidx_mine[:, 0], qidx_mine[:, 1]
+        plocs_x, plocs_y = self.bd.boardloc_as_pixelloc(blocs)
+        for px, py, mine_under in zip(plocs_x, plocs_y, qidx_mine[:, 2]):
             if not mine_under:
-                ploc = vb.cellid_as_pixelloc(self.bd, bloc)
-                self.mc.click(ploc, True)
+                self.mc.click((px, py), True)
         time.sleep(self.delay_after)
 
 
@@ -72,9 +76,6 @@ class ChordActionPlanner(ActionPlanner):
     Note on "Chord": Clicking on numbered/satisfied square will open
     all its neighbors.
     """
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
-        super().__init__(delay_after, bdetector)
-
     def click_mines(self, board, qidx_mine):
         # TODO
         raise NotImplementedError

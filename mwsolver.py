@@ -4,7 +4,7 @@ import logging
 import logging.config
 
 import numpy as np
-import PIL.Image as Image
+from PIL import Image
 import mss
 
 import vboard as vb

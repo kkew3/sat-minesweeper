@@ -8,7 +8,7 @@ import sys
 import numpy as np
 from scipy.spatial.distance import cdist
 import cv2
-import PIL.Image as Image
+from PIL import Image
 
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
@@ -63,6 +63,7 @@ class BoardNotFoundError(Exception):
     """
     Raised when the board cells cannot be segmented out correctly.
     """
+    pass
 
 
 class BoardDetector:
@@ -289,7 +290,10 @@ class BoardDetector:
         _, mrimg = self.localize_board_and_mr(screenshot)
         cellimgs = self.get_cells_from_board(screenshot)
         cells = self.recognize_cells(cellimgs)
-        mr = self.recognize_mr_digits(mrimg)
+        if self.upper_mr is None:
+            mr = None
+        else:
+            mr = self.recognize_mr_digits(mrimg)
         return cells, mr
 
     @staticmethod
@@ -353,6 +357,24 @@ class BoardDetector:
         predictions = [self._face_templates_cids[x] for x in predictions]
         predictions = np.array(predictions).reshape((self.height, self.width))
         return predictions
+
+    def boardloc_as_pixelloc(self, blocs):
+        """
+        Convert a batch of board locations to a batch of pixel locations. Note
+        that in the board coordinate x axis is from the upper left corner to
+        the lower left corner and the y axis is from the upper left corner to
+        the upper right corner; whereas in the pixel coordinate x axis is from
+        the upper left corner to the upper right corner, etc.
+
+        :param blocs: of form (array([...], dtype=int), array([...], dtype=int)
+               where the first array is the board x coordinates, and the
+               second array the board y coordinates
+        :return: pixel coordinates of the same form as ``blocs``
+        """
+        bx, by = blocs
+        py = ((self.hkls[bx] + self.hkls[bx + 1]) / 2).astype(int)
+        px = ((self.vkls[by] + self.vkls[by + 1]) / 2).astype(int)
+        return px, py
 
     @staticmethod
     def _cc_dist(query, templates):
