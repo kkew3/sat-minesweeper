@@ -5,6 +5,7 @@ import logging.config
 
 import numpy as np
 from PIL import Image
+import cv2
 import mss
 
 import vboard as vb
@@ -40,12 +41,32 @@ class BoardFlagModifier:
         return board
 
 
-def identify_stage(board):
-    if np.sum(board == sutils.CID['m']) > 0:
-        return 'lost'
-    if np.sum(board == sutils.CID['q']) == 0:
-        return 'win'
-    return 'ongoing'
+class StageIdentifier:
+    def __init__(self):
+        self.win_text = vb.loadimg('new/win_text.png')
+
+    def identify_stage(self, scr, board):
+        """
+        :param scr: should be an array of shape (H, W), of dtype uint8
+        :param board: the recognized board
+        """
+        match_tol = 25
+        if np.any(cv2.matchTemplate(
+                scr, self.win_text, cv2.TM_SQDIFF) <= match_tol):
+            return 'win'
+        if np.any(board == sutils.CID['m']):
+            return 'lost'
+        return 'ongoing'
+
+
+# Deprecated. This function does not adapt to the new interface of
+# minesweeper.org
+#def identify_stage(scr, board):
+#    if np.sum(board == sutils.CID['m']) > 0:
+#        return 'lost'
+#    if np.sum(board == sutils.CID['q']) == 0:
+#        return 'win'
+#    return 'ongoing'
 
 
 def make_screenshot(sct):
@@ -63,6 +84,7 @@ def main():
         scr = np.array(make_screenshot(sct).convert('L'))
         bd = vb.BoardDetector.new(scr)
         pl = planner.NoFlagActionPlanner(0.0, bd)
+        si = StageIdentifier()
 
         logger.info('Process begun')
         try:
@@ -70,9 +92,8 @@ def main():
                         args.delay_before)
             time.sleep(args.delay_before)
 
-            scr = np.array(make_screenshot(sct).convert('L'))
-            board, mine_remains = bd.recognize_board_and_mr(scr)
-            stage = identify_stage(board)
+            board, mine_remains, boardimg = bd.recognize_board_and_mr(sct)
+            stage = si.identify_stage(boardimg, board)
 
             if stage != 'ongoing':
                 raise GameWontBeginError('game hasn\'t begun yet')
@@ -87,9 +108,8 @@ def main():
                     pl.click_mines(board, solutions)
                     step += 1
 
-                    scr = np.array(make_screenshot(sct).convert('L'))
-                    board, mine_remains = bd.recognize_board_and_mr(scr)
-                    stage = identify_stage(board)
+                    board, mine_remains, boardimg = bd.recognize_board_and_mr(sct)
+                    stage = si.identify_stage(boardimg, board)
             finally:
                 logger.info('Stage: %s', stage)
         except KeyboardInterrupt:

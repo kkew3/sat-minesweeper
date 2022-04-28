@@ -324,7 +324,10 @@ class BoardDetector:
             mr = None
         else:
             mr = self.recognize_mr_digits(mrimg)
-        return cells, mr
+        # I have to return `boardimg` so that `identify_stage` in `mwsolver.py`
+        # sees it. I know this could be a bad design, but can't do anything
+        # right now.
+        return cells, mr, boardimg
 
     @staticmethod
     def recognize_mr_digits(roi_gray):
