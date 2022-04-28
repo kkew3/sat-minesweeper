@@ -59,6 +59,14 @@ def get_rect_midpoint(top_left, shape):
     ])
 
 
+def make_screenshot(sct, monitor=None):
+    if not monitor:
+        monitor = sct.monitors[1]
+    img = sct.grab(monitor)
+    img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
+    return img
+
+
 class BoardNotFoundError(Exception):
     """
     Raised when the board cells cannot be segmented out correctly.
@@ -100,6 +108,28 @@ class BoardDetector:
         self.lower_mr = lower_mr
         self.left_mr = left_mr
         self.right_mr = right_mr
+
+        # precomputed board region and remaining mines region
+        self.board_region = {
+            'top': self.upper,  # self.upper is a property
+            'left': self.left,  # same
+            'width': self.right - self.left,  # same
+            'height': self.lower - self.upper,  # same
+        }
+        if self.upper_mr is not None:
+            self.mr_region = {
+                'top': self.upper_mr,
+                'left': self.left_mr,
+                'width': self.right_mr - self.left_mr,
+                'height': self.lower_mr - self.upper_mr,
+            }
+        else:
+            self.mr_region = None
+
+        # precomputed offset hkls and vkls, i.e. the key lines with respect
+        # to the upper left corner of the board region
+        self.offset_hkls = self.hkls - self.hkls[0]
+        self.offset_vkls = self.vkls - self.vkls[0]
 
         # preload various cells
         self._face_templates = np.stack(
@@ -286,9 +316,9 @@ class BoardDetector:
 
         return cls(hkls, vkls, upper_mr, lower_mr, left_mr, right_mr)
 
-    def recognize_board_and_mr(self, screenshot):
-        _, mrimg = self.localize_board_and_mr(screenshot)
-        cellimgs = self.get_cells_from_board(screenshot)
+    def recognize_board_and_mr(self, sct):
+        boardimg, mrimg = self.localize_board_and_mr(sct)
+        cellimgs = self.get_cells_from_board(boardimg)
         cells = self.recognize_cells(cellimgs)
         if self.upper_mr is None:
             mr = None
@@ -310,39 +340,27 @@ class BoardDetector:
         digits = np.argmax(np.matmul(results * 2 - 1, MR_LOOKUPTABLE), axis=1)
         return np.dot(digits, MR_UNITS)
 
-    def localize_board_and_mr(self, screenshot):
+    def localize_board_and_mr(self, sct):
         """
         Returns ``(cell_board_image, mine_remaining_image)`` if
         ``enable_mr_detect`` was ``True`` when calling ``new`` to construct
         this ``BoardDetector``; otherwise, returns
         ``(cell_board_image, None)``.
         """
-        # yapf: disable
+        boardimg = np.array(make_screenshot(sct, self.board_region)
+                            .convert('L'))
         if self.upper_mr is None:
-            return (
-                # cell board
-                screenshot[self.upper:self.lower,
-                           self.left:self.right],
-                # mine remaining label
-                None,
-            )
-        return (
-            # cell board
-            screenshot[self.upper:self.lower,
-                       self.left:self.right],
-            # mine remaining label
-            screenshot[self.upper_mr:self.lower_mr,
-                       self.left_mr:self.right_mr],
-        )
-        # yapf: enable
+            return boardimg, None
+        mrimg = np.array(make_screenshot(sct, self.mr_region).convert('L'))
+        return boardimg, mrimg
 
-    def get_cells_from_board(self, screenshot):
+    def get_cells_from_board(self, boardimg):
         cells = []
-        for i in range(self.hkls.size - 1):
-            for j in range(self.vkls.size - 1):
+        for i in range(self.offset_hkls.size - 1):
+            for j in range(self.offset_vkls.size - 1):
                 # yapf: disable
-                c = screenshot[self.hkls[i]:self.hkls[i + 1],
-                               self.vkls[j]:self.vkls[j + 1]]
+                c = boardimg[self.offset_hkls[i]:self.offset_hkls[i + 1],
+                             self.offset_vkls[j]:self.offset_vkls[j + 1]]
                 # yapf: enable
                 cells.append(np.copy(c))
         cells = np.stack(cells)
@@ -387,18 +405,12 @@ def _main():
     parser = argparse.ArgumentParser(
         description='Recognize board from screenshot.')
     parser.add_argument(
-        '-I',
-        dest='image',
-        type=os.path.normpath,
-        help='image input, or not specified to take '
-        'screenshot')
-    parser.add_argument(
         '-R',
         dest='empty_board',
         type=os.path.normpath,
-        help='recognize from IMAGE given EMPTY_BOARD in '
+        help='recognize from screenshot given EMPTY_BOARD in '
         'scene if specified; otherwise, localize board '
-        'and mine remaining label from IMAGE')
+        'and mine remaining label from screenshot')
     parser.add_argument(
         '-b',
         type=os.path.normpath,
@@ -432,20 +444,13 @@ def _main():
         'be printed on screen')
     args = parser.parse_args()
 
-    if args.image:
-        args.image = np.array(Image.open(args.image).convert('L'))
-    else:
-        #args.image = np.array(ImageGrab.grab().convert('L'))
-        with mss.mss() as sct:
-            sct_img = sct.grab(sct.monitors[1])
-        args.image = np.array(Image.frombytes(
-            'RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX').convert('L'))
-    if args.empty_board:
-        args.empty_board = np.array(Image.open(args.empty_board).convert('L'))
-    bd = BoardDetector.new(
-        args.empty_board if args.empty_board is not None else args.image,
-        enable_mr_detect=args.mr_tofile or args.mrnum)
-    boardimg, mrimg = bd.localize_board_and_mr(args.image)
+    with mss.mss() as sct:
+        if not args.empty_board:
+            empty_board = np.array(make_screenshot(sct).convert('L'))
+        else:
+            empty_board = np.array(Image.open(args.empty_board).convert('L'))
+        bd = BoardDetector.new(empty_board, args.mr_tofile or args.mrnum)
+        boardimg, mrimg = bd.localize_board_and_mr(sct)
     if args.board_tofile:
         Image.fromarray(boardimg).save(args.board_tofile)
     if args.mr_tofile:
@@ -453,13 +458,13 @@ def _main():
     if args.empty_board is not None and args.boardcsv:
         np.savetxt(
             sys.stdout,
-            bd.recognize_cells(bd.get_cells_from_board(args.image)),
+            bd.recognize_cells(bd.get_cells_from_board(boardimg)),
             fmt='%d',
             delimiter=',')
     if args.mrnum:
         print(bd.recognize_mr_digits(mrimg))
     if args.cellnpy_tofile:
-        np.save(args.cellnpy_tofile, bd.get_cells_from_board(args.image))
+        np.save(args.cellnpy_tofile, bd.get_cells_from_board(boardimg))
     print(bd)
 
 
