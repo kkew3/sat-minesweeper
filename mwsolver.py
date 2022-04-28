@@ -23,9 +23,12 @@ def make_parser():
     parser.add_argument('-D', dest='delay_before', type=int, default=10,
                         help='seconds to wait before each round; default to '
                              '%(default)s seconds')
+    parser.add_argument('-m', dest='num_mines', type=int, metavar='N',
+                        help='total number of mines')
     return parser
 
 
+# pylint: disable=too-few-public-methods
 class BoardFlagModifier:
     def __init__(self):
         self.solutions = {}
@@ -41,6 +44,7 @@ class BoardFlagModifier:
         return board
 
 
+# pylint: disable=too-few-public-methods
 class StageIdentifier:
     def __init__(self):
         self.win_text = vb.loadimg('new/win_text.png')
@@ -92,7 +96,7 @@ def main():
                         args.delay_before)
             time.sleep(args.delay_before)
 
-            board, mine_remains, boardimg = bd.recognize_board_and_mr(sct)
+            board, _, boardimg = bd.recognize_board_and_mr(sct)
             stage = si.identify_stage(boardimg, board)
 
             if stage != 'ongoing':
@@ -103,12 +107,17 @@ def main():
                 solutions = None
                 while stage == 'ongoing':
                     board = bfm(solutions, board)
+                    if args.num_mines:
+                        mine_remains = args.num_mines - np.sum(board == sutils.CID['f'])
+                        logger.info('# Mine remains: %d', mine_remains)
+                    else:
+                        mine_remains = None
                     logger.debug('Detected board: %s', board.tolist())
                     solutions = solver.solve(board, mine_remains)
                     pl.click_mines(board, solutions)
                     step += 1
 
-                    board, mine_remains, boardimg = bd.recognize_board_and_mr(sct)
+                    board, _, boardimg = bd.recognize_board_and_mr(sct)
                     stage = si.identify_stage(boardimg, board)
             finally:
                 logger.info('Stage: %s', stage)
