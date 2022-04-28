@@ -163,7 +163,18 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     qidx_mine = np.concatenate((qidx, mine[:, np.newaxis]), axis=1)
     return qidx_mine, confidence
 
-def solve(board: np.ndarray, mines_remain: int = None):
+def solve(board: np.ndarray, mines_remain: int = None,
+          consider_mines_th: int = 5):
+    """
+    Solve the board.
+
+    :param board: the board
+    :param mines_remain: if not None, should be the number of mines not
+           uncovered
+    :param consider_mines_th: when `mines_remain` is not None and is no
+           greater than this number, `mines_remain` is taken into
+           consideration
+    """
     logger = _l(solve.__name__)
     if np.all(board == CID['q']):
         logger.info('Performing first step random guess')
@@ -180,7 +191,7 @@ def solve(board: np.ndarray, mines_remain: int = None):
         qidx_mine, confidence = solve_board(board)
         uscore = 1.0 - 1e-6
         if np.max(confidence) <= uscore and mines_remain is not None \
-                and mines_remain < 5:
+                and mines_remain <= consider_mines_th:
             logger.info('No confident decision. Rerunning inference using '
                         'mines_remain')
             qidx_mine, confidence = solve_board(board, mines_remain)
