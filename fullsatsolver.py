@@ -64,18 +64,18 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
 
     qvars_to_use = []
     if mine_remains is None:
-        for x, y in zip(*np.where(board == CID['q'])):
+        for x, y in zip(*np.nonzero(board == CID['q'])):
             surr = boxof(board, (x, y))
             if np.any((surr >= 1) & (surr <= 8)):
                 v = int(vartable[x, y])
                 qvars_to_use.append(v)
     else:
-        for x, y in zip(*np.where(board == CID['q'])):
+        for x, y in zip(*np.nonzero(board == CID['q'])):
             qvars_to_use.append(int(vartable[x, y]))
     qvar2vid = dict((v, i+1) for i, v in enumerate(qvars_to_use))
     pe = NCKProblemEncoder(len(qvar2vid))
 
-    for x, y in zip(*np.where((board <= 8) & (board >= 1))):
+    for x, y in zip(*np.nonzero((board <= 8) & (board >= 1))):
         surr = boxof(board, (x, y))
         vsurr = boxof(vartable, (x, y))
         if np.sum(surr == CID['q']) > 0:
@@ -128,7 +128,7 @@ def attempt_probing(all_vars, clauses, solutions, solver='minisat22', th=1e-6):
     logger = _l(attempt_probing.__name__)
     solutions = np.array(solutions)
     confidence, mine = analyze_solutions(solutions, len(all_vars))
-    quasiconfident = np.where(confidence > 1.0 - th)[0]
+    quasiconfident = np.nonzero(confidence > 1.0 - th)[0]
     with SATSolver(name=solver, bootstrap_with=clauses) as s:
         for i in map(int, quasiconfident):
             neg = s.solve(assumptions=[-(i + 1)])
@@ -200,12 +200,12 @@ def solve(board: np.ndarray, mines_remain: int = None,
                         'mines_remain')
             qidx_mine, confidence = solve_board(board, mines_remain)
         if np.max(confidence) > uscore:
-            return qidx_mine[np.where(confidence > uscore)]
+            return qidx_mine[np.nonzero(confidence > uscore)]
         return qidx_mine[np.argmax(confidence)][np.newaxis]
     except NoSolutionError:
         logger.warning('NoSolutionError')
         logger.info('Falling back to random guess')
-        all_blocs = np.stack(np.where(board == CID['q']), axis=1)
+        all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
         rand_bloc = all_blocs[np.random.randint(all_blocs.shape[0])]
         rand_mine = 0  # if guess 1 it ends up mistaken but found after
                        # several steps
