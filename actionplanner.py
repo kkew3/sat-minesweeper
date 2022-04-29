@@ -1,11 +1,13 @@
 import typing
 import time
 
+import numpy as np
 import pyautogui as pg
 from PIL import Image
 import mss
 
 import vboard as vb
+import solverutils as sutils
 
 
 def make_screenshot(sct):
@@ -58,6 +60,26 @@ class PlainActionPlanner(ActionPlanner):
         for px, py, mine_under in zip(plocs_x, plocs_y, qidx_mine[:, 2]):
             self.mc.click((px, py), not bool(mine_under))
         time.sleep(self.delay_after)
+
+
+# pylint: disable=too-few-public-methods
+class BoardFlagModifier:
+    """
+    Used together with ``NoFlagActionPlanner`` to let the program aware of
+    where all the inferred mines are.
+    """
+    def __init__(self):
+        self.solutions = {}
+
+    def __call__(self, prev_qidx_mine, board):
+        if prev_qidx_mine is not None:
+            board = np.copy(board)
+            for x, y, m in prev_qidx_mine:
+                self.solutions[x, y] = m
+            for (x, y), m in self.solutions.items():
+                if m:
+                    board[x, y] = sutils.CID['f']
+        return board
 
 
 # pylint: disable=too-few-public-methods

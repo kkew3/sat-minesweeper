@@ -29,22 +29,6 @@ def make_parser():
 
 
 # pylint: disable=too-few-public-methods
-class BoardFlagModifier:
-    def __init__(self):
-        self.solutions = {}
-
-    def __call__(self, prev_qidx_mine, board):
-        if prev_qidx_mine is not None:
-            board = np.copy(board)
-            for x, y, m in prev_qidx_mine:
-                self.solutions[x, y] = m
-            for (x, y), m in self.solutions.items():
-                if m:
-                    board[x, y] = sutils.CID['f']
-        return board
-
-
-# pylint: disable=too-few-public-methods
 class StageIdentifier:
     def __init__(self):
         self.win_text = vb.loadimg('new/win_text.png')
@@ -104,7 +88,7 @@ def main():
             tic = time.time()
             try:
                 step = 0
-                bfm = BoardFlagModifier()
+                bfm = planner.BoardFlagModifier()
                 solutions = None
                 while stage == 'ongoing':
                     board = bfm(solutions, board)
