@@ -63,6 +63,3 @@ I take into account the number of mines remaining as soon as it's no longer intr
 
 - [Chord](http://www.minesweeper.info/wiki/Chord) uncovers mines more quickly.
   Usually, only a chord that uncovers more than one mine is necessary.
-- [Patterns](http://www.minesweeper.info/wiki/Strategy) used by human experts are not taken into consideration.
-  These patterns are often not derived from current board and the MineSweeper's rules, e.g. the `1-2-1` pattern.
-  Since this work requires some tedious pattern recognition code, I didn't put it into this first release.
