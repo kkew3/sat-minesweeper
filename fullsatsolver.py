@@ -168,7 +168,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     return qidx_mine, confidence
 
 def solve(board: np.ndarray, mines_remain: int = None,
-          consider_mines_th: int = 5):
+          consider_mines_th: int = 5, guess_edge_weight: float = 2.0):
     """
     Solve the board.
 
@@ -178,6 +178,11 @@ def solve(board: np.ndarray, mines_remain: int = None,
     :param consider_mines_th: when `mines_remain` is not None and is no
            greater than this number, `mines_remain` is taken into
            consideration
+    :param guess_edge_weight: when in the middle of a game and when a random
+           guess is required, assign non-edge cells weight 1.0 and assign
+           edge cells this weight to perform a weighted guess. Generally
+           this weight should be larger than 1.0. This strategy comes from
+           the Guessing section of http://www.minesweeper.info/wiki/Strategy
     """
     logger = _l(solve.__name__)
     if np.all(board == CID['q']):
@@ -206,7 +211,14 @@ def solve(board: np.ndarray, mines_remain: int = None,
         logger.warning('NoSolutionError')
         logger.info('Falling back to random guess')
         all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
-        rand_bloc = all_blocs[np.random.randint(all_blocs.shape[0])]
+        on_edge = ((all_blocs[:, 0] == 0)
+                   | (all_blocs[:, 0] == board.shape[0] - 1)
+                   | (all_blocs[:, 1] == 0)
+                   | (all_blocs[:, 1] == board.shape[1] - 1))
+        weights = np.where(on_edge, guess_edge_weight, 1.0)
+        weights = weights / np.sum(weights)
+        rand_bloc = all_blocs[np.random.choice(np.arange(all_blocs.shape[0]),
+                                               p=weights)]
         rand_mine = 0  # if guess 1 it ends up mistaken but found after
                        # several steps
         logger.info('Choosing: bloc=%s, mine_under=%s', rand_bloc, rand_mine)
