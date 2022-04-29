@@ -101,6 +101,7 @@ def main():
 
             if stage != 'ongoing':
                 raise GameWontBeginError('game hasn\'t begun yet')
+            tic = time.time()
             try:
                 step = 0
                 bfm = BoardFlagModifier()
@@ -120,7 +121,9 @@ def main():
                     board, _, boardimg = bd.recognize_board_and_mr(sct)
                     stage = si.identify_stage(boardimg, board)
             finally:
+                toc = time.time()
                 logger.info('Stage: %s', stage)
+                logger.info('Time used: %f seconds', toc - tic)
         except KeyboardInterrupt:
             pass
         except (vb.BoardNotFoundError, GameWontBeginError,
