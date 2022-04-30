@@ -299,7 +299,10 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
     ucells_star, to_flags_star = agg_strategies[i]
     rest_ccells_star = all_rest_ccells[i]
     right_clicks = to_flags_star
-    left_clicks = list(itertools.chain(ccnmnc_loc, ucells_star,
+    # put ucells_star at first so that when providing GreedyChordActionPlanner
+    # with sct, chord will happen first; since chord opens cells, the rest
+    # cells may not need to be opened.
+    left_clicks = list(itertools.chain(ucells_star, ccnmnc_loc,
                                        rest_ccells_star))
     # for debug purpose
     #total_clicks_star = all_total_clicks[i]
