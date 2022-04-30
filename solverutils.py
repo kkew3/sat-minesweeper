@@ -12,7 +12,6 @@ import itertools
 
 import numpy as np
 
-
 # This is the class ID of (f)lag, (m)ine, and (q)uery tile
 CID = {
     'f': 9,
@@ -25,17 +24,21 @@ def make_parser():
     parser = argparse.ArgumentParser(
         prog='python ' + sys.argv[0],
         description='Solves the mine board provided via stdin and gives the '
-                    'result via stdout. An optional number of mines '
-                    'remaining can be specified at the first line of the '
-                    'CSV file by `#mines N\'.')
-    parser.add_argument('board_csv', action='append', nargs='?',
-                        metavar='CSVFILE',
-                        help='the CSV file describing the board, or omitted '
-                             'to read from stdin')
+        'result via stdout. An optional number of mines '
+        'remaining can be specified at the first line of the '
+        'CSV file by `#mines N\'.')
+    parser.add_argument(
+        'board_csv',
+        action='append',
+        nargs='?',
+        metavar='CSVFILE',
+        help='the CSV file describing the board, or omitted '
+        'to read from stdin')
     return parser
 
 
-class EmptyCsvError(Exception): pass
+class EmptyCsvError(Exception):
+    pass
 
 
 def read_board(board_csv):

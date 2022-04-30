@@ -350,8 +350,8 @@ class BoardDetector:
         this ``BoardDetector``; otherwise, returns
         ``(cell_board_image, None)``.
         """
-        boardimg = np.array(make_screenshot(sct, self.board_region)
-                            .convert('L'))
+        boardimg = np.array(
+            make_screenshot(sct, self.board_region).convert('L'))
         if self.upper_mr is None:
             return boardimg, None
         mrimg = np.array(make_screenshot(sct, self.mr_region).convert('L'))

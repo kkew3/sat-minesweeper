@@ -10,7 +10,6 @@ from pysat.solvers import Solver as SATSolver
 from solverutils import CID
 import solverutils as sutils
 
-
 Clauses = typing.List[typing.List[int]]
 
 
@@ -45,15 +44,15 @@ class NCKProblemEncoder:
         tr.update(dict(zip(range(-1, -n - 2, -1), [-x for x in vars_])))
         C = [[tr.get(x, x) for x in r] for r in C]
         self.s1 += ns
-        self.logger.debug('Updated self.s1 from %d to %d',
-                          self.s1 - ns, self.s1)
+        self.logger.debug('Updated self.s1 from %d to %d', self.s1 - ns,
+                          self.s1)
         C = [[int(x) for x in r] for r in C]
         return C
 
 
 def boxof(array, center, radius=1):
-    return array[max(0, center[0]-radius):center[0]+radius+1,
-                 max(0, center[1]-radius):center[1]+radius+1]
+    return array[max(0, center[0] - radius):center[0] + radius + 1,
+                 max(0, center[1] - radius):center[1] + radius + 1]
 
 
 def encode_board(board: np.ndarray, mine_remains: int = None) \
@@ -72,7 +71,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     else:
         for x, y in zip(*np.nonzero(board == CID['q'])):
             qvars_to_use.append(int(vartable[x, y]))
-    qvar2vid = dict((v, i+1) for i, v in enumerate(qvars_to_use))
+    qvar2vid = dict((v, i + 1) for i, v in enumerate(qvars_to_use))
     pe = NCKProblemEncoder(len(qvar2vid))
 
     for x, y in zip(*np.nonzero((board <= 8) & (board >= 1))):
@@ -85,8 +84,8 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
             vars_ = vars__
             k = board[x, y] - np.sum((surr == CID['m']) | (surr == CID['f']))
             C = pe(k, vars_)
-            logger.debug('Encoded k=%d vars=%s dcell=%s as clauses C=%s',
-                         k, vars_, (x, y), C)
+            logger.debug('Encoded k=%d vars=%s dcell=%s as clauses C=%s', k,
+                         vars_, (x, y), C)
             clauses.update(map(tuple, C))
     if mine_remains is not None:
         vars_ = [qvar2vid[k] for k in sorted(qvar2vid)]
@@ -159,8 +158,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
         solutions = attempt_full_solve(clauses)
     except TooManySolutionsError as e:
         logger.debug('Handling TooManySolutionError')
-        confidence, mine = attempt_probing(qvars, clauses, e.solutions,
-                                           th=0.2)
+        confidence, mine = attempt_probing(qvars, clauses, e.solutions, th=0.2)
         logger.debug('Assumption solve solutions=%s, confidence=%s',
                      mine.tolist(), confidence.tolist())
     else:
@@ -172,8 +170,11 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     qidx_mine = np.concatenate((qidx, mine[:, np.newaxis]), axis=1)
     return qidx_mine, confidence
 
-def solve(board: np.ndarray, mines_remain: int = None,
-          consider_mines_th: int = 5, guess_edge_weight: float = 2.0):
+
+def solve(board: np.ndarray,
+          mines_remain: int = None,
+          consider_mines_th: int = 5,
+          guess_edge_weight: float = 2.0):
     """
     Solve the board.
 
@@ -192,8 +193,7 @@ def solve(board: np.ndarray, mines_remain: int = None,
     logger = _l(solve.__name__)
     if np.all(board == CID['q']):
         logger.info('Performing first step random guess')
-        randbloc = np.unravel_index(
-            np.random.randint(board.size), board.shape)
+        randbloc = np.unravel_index(np.random.randint(board.size), board.shape)
         logger.info('Choosing bloc=%s', randbloc)
         return np.concatenate((randbloc, [0]))[np.newaxis]
     if np.all(board != CID['q']):
@@ -224,8 +224,8 @@ def solve(board: np.ndarray, mines_remain: int = None,
                    | (all_blocs[:, 1] == board.shape[1] - 1))
         weights = np.where(on_edge, guess_edge_weight, 1.0)
         weights = weights / np.sum(weights)
-        rand_bloc = all_blocs[np.random.choice(np.arange(all_blocs.shape[0]),
-                                               p=weights)]
+        rand_bloc = all_blocs[np.random.choice(
+            np.arange(all_blocs.shape[0]), p=weights)]
         logger.info('Choosing: bloc=%s, mine_under=0', rand_bloc)
         return np.concatenate((rand_bloc, [0]))[np.newaxis]
     except NoSolutionError:
@@ -239,10 +239,10 @@ def solve(board: np.ndarray, mines_remain: int = None,
                    | (all_blocs[:, 1] == board.shape[1] - 1))
         weights = np.where(on_edge, guess_edge_weight, 1.0)
         weights = weights / np.sum(weights)
-        rand_bloc = all_blocs[np.random.choice(np.arange(all_blocs.shape[0]),
-                                               p=weights)]
-        rand_mine = 0  # if guess 1 it ends up mistaken but found after
-                       # several steps
+        rand_bloc = all_blocs[np.random.choice(
+            np.arange(all_blocs.shape[0]), p=weights)]
+        # if guess 1 it ends up mistaken but found after several steps
+        rand_mine = 0
         logger.info('Choosing: bloc=%s, mine_under=%s', rand_bloc, rand_mine)
         return np.concatenate((rand_bloc, [rand_mine]))[np.newaxis]
     finally:

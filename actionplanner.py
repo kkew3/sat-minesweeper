@@ -174,7 +174,7 @@ def _calc_chord_stats(boxof: BoxOf, board, ccm_loc, ccnm_loc, th=2):
             elif box_bxy in ccnm_loc:
                 box_ccnm_loc.add(box_bxy)
         if (len(box_cctf_loc) + box_fc_count == board[bxy]
-            and len(box_ccnm_loc) >= max(th, len(box_cctf_loc))):
+                and len(box_ccnm_loc) >= max(th, len(box_cctf_loc))):
             # chord can be performed on bxy
             ucells_to_chord[bxy] = (box_cctf_loc, box_ccnm_loc)
             ccnmnc_loc -= box_ccnm_loc
@@ -249,8 +249,9 @@ def cleanup_used_nodes(G: nx.Graph, ucell):
 
 
 def enum_rest_ccells(G: nx.Graph):
-    return [n for n, type_ in dict(G.nodes(data='type_')).items()
-            if type_ == 'c']
+    return [
+        n for n, type_ in dict(G.nodes(data='type_')).items() if type_ == 'c'
+    ]
 
 
 def find_optimal_chord_strategy(board, qidx_mine, th=2):
@@ -259,8 +260,8 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
     _l.debug('ccm_loc: %s', ccm_loc)
     _l.debug('ccnm_loc: %s', ccnm_loc)
     boxof = BoxOf(board.shape)
-    ucells_to_chord, ccnmnc_loc = _calc_chord_stats(
-        boxof, board, ccm_loc, ccnm_loc, th)
+    ucells_to_chord, ccnmnc_loc = _calc_chord_stats(boxof, board, ccm_loc,
+                                                    ccnm_loc, th)
     _l.debug('ucells_to_chord: %s', ucells_to_chord)
     _l.debug('ccnmnc_loc: %s', ccnmnc_loc)
     G = build_graph(ucells_to_chord)
@@ -290,9 +291,9 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
         prev_to_flag_star = curr_to_flag_star
     all_total_clicks = [
         len(rest_ccells) + len(curr_ucells_star) + len(curr_to_flag_star)
-        + len(ccnmnc_loc)
-        for rest_ccells, (curr_ucells_star, curr_to_flag_star)
-        in zip(all_rest_ccells, agg_strategies)
+        + len(ccnmnc_loc) for rest_ccells, (
+            curr_ucells_star,
+            curr_to_flag_star) in zip(all_rest_ccells, agg_strategies)
     ]
     i = np.argmin(all_total_clicks)
 
@@ -302,8 +303,8 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
     # put ucells_star at first so that when providing GreedyChordActionPlanner
     # with sct, chord will happen first; since chord opens cells, the rest
     # cells may not need to be opened.
-    left_clicks = list(itertools.chain(ucells_star, ccnmnc_loc,
-                                       rest_ccells_star))
+    left_clicks = list(
+        itertools.chain(ucells_star, ccnmnc_loc, rest_ccells_star))
     # for debug purpose
     #total_clicks_star = all_total_clicks[i]
     return right_clicks, left_clicks
@@ -320,7 +321,9 @@ class GreedyChordActionPlanner(ActionPlanner):
     the total number of clicks of the greedy algorithm is on average down
     21% with respect to NF strategy.
     """
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
+    def __init__(self,
+                 delay_after: float,
+                 bdetector: vb.BoardDetector,
                  sct=None):
         """
         :param delay_after: ...
@@ -340,16 +343,20 @@ class GreedyChordActionPlanner(ActionPlanner):
         mines_not_flagged = self.all_mines_ever_found - self.mines_flagged
         if mines_not_flagged and no_mines.shape[0]:
             mines_not_flagged = np.asarray(list(mines_not_flagged))
-            mines_not_flagged = np.concatenate(
-                [mines_not_flagged, np.ones((mines_not_flagged.shape[0], 1),
-                                            dtype=int)], axis=1)
-            expanded_qidx_mine = np.concatenate(
-                [no_mines, mines_not_flagged], axis=0)
+            mines_not_flagged = np.concatenate([
+                mines_not_flagged,
+                np.ones((mines_not_flagged.shape[0], 1), dtype=int)
+            ],
+                                               axis=1)
+            expanded_qidx_mine = np.concatenate([no_mines, mines_not_flagged],
+                                                axis=0)
         elif mines_not_flagged:
             mines_not_flagged = np.asarray(list(mines_not_flagged))
-            mines_not_flagged = np.concatenate(
-                [mines_not_flagged, np.ones((mines_not_flagged.shape[0], 1),
-                                            dtype=int)], axis=1)
+            mines_not_flagged = np.concatenate([
+                mines_not_flagged,
+                np.ones((mines_not_flagged.shape[0], 1), dtype=int)
+            ],
+                                               axis=1)
             expanded_qidx_mine = mines_not_flagged
         else:
             # it's impossible that both no_mines and mines_not_flagged are
@@ -375,7 +382,8 @@ class GreedyChordActionPlanner(ActionPlanner):
             board, _, _ = self.bd.recognize_board_and_mr(self.sct)
             values = board[left_clicks[:, 0], left_clicks[:, 1]]
             values_diff = np.zeros(left_clicks.shape[0], dtype=np.bool_)
-            for i, pxy in enumerate(zip(*self.bd.boardloc_as_pixelloc(left_blocs))):
+            for i, pxy in enumerate(
+                    zip(*self.bd.boardloc_as_pixelloc(left_blocs))):
                 if self.sct:
                     prev_values = values
                     if not values_diff[i]:
@@ -385,9 +393,10 @@ class GreedyChordActionPlanner(ActionPlanner):
                         values_diff = np.logical_or((prev_values != values),
                                                     values_diff)
                     else:
-                        self._l.info('skipped clicking (%d, %d) because '
-                                     'clicking has no effect',
-                                     left_clicks[i, 0], left_clicks[i, 1])
+                        self._l.info(
+                            'skipped clicking (%d, %d) because '
+                            'clicking has no effect', left_clicks[i, 0],
+                            left_clicks[i, 1])
                 else:
                     self.mc.click(pxy, True)
         time.sleep(self.delay_after)

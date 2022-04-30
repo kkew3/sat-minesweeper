@@ -14,7 +14,6 @@ import fullsatsolver as solver
 import actionplanner as planner
 import solverutils as sutils
 
-
 # world champion's clicking speed, approximately
 pg.PAUSE = 0.05
 
@@ -25,11 +24,19 @@ class GameWontBeginError(Exception):
 
 def make_parser():
     parser = argparse.ArgumentParser(description='Minesweeper agent')
-    parser.add_argument('-D', dest='delay_before', type=int, default=10,
-                        help='seconds to wait before each round; default to '
-                             '%(default)s seconds')
-    parser.add_argument('-m', dest='num_mines', type=int, metavar='N',
-                        help='total number of mines')
+    parser.add_argument(
+        '-D',
+        dest='delay_before',
+        type=int,
+        default=10,
+        help='seconds to wait before each round; default to '
+        '%(default)s seconds')
+    parser.add_argument(
+        '-m',
+        dest='num_mines',
+        type=int,
+        metavar='N',
+        help='total number of mines')
     return parser
 
 
@@ -44,8 +51,9 @@ class StageIdentifier:
         :param board: the recognized board
         """
         match_tol = 25
-        if np.any(cv2.matchTemplate(
-                scr, self.win_text, cv2.TM_SQDIFF) <= match_tol):
+        if np.any(
+                cv2.matchTemplate(scr, self.win_text, cv2.TM_SQDIFF) <=
+                match_tol):
             return 'win'
         if np.any(board == sutils.CID['m']):
             return 'lost'
@@ -99,7 +107,8 @@ def main():
                     board = bfm(solutions, board)
                     logger.debug('Detected board: %s', board.tolist())
                     if args.num_mines:
-                        mine_remains = args.num_mines - np.sum(board == sutils.CID['f'])
+                        mine_remains = args.num_mines - np.sum(
+                            board == sutils.CID['f'])
                         logger.info('# Mine remains: %d', mine_remains)
                     else:
                         mine_remains = None
