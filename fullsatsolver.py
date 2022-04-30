@@ -211,10 +211,27 @@ def solve(board: np.ndarray, mines_remain: int = None,
             qidx_mine, confidence = solve_board(board, mines_remain)
         if np.max(confidence) > uscore:
             return qidx_mine[np.nonzero(confidence > uscore)]
-        return qidx_mine[np.argmax(confidence)][np.newaxis]
+        if not np.allclose(np.max(confidence), 0.0):
+            return qidx_mine[np.argmax(confidence)][np.newaxis]
+        # confidence == [0.0, 0.0, ...], mines should be [False, False, ...]
+        assert not np.any(qidx_mine[:, 2]), qidx_mine
+        logger.info('Confidences are all zero; failing back to random guess')
+        # guess edges with more probability
+        all_blocs = qidx_mine[:, :2]
+        on_edge = ((all_blocs[:, 0] == 0)
+                   | (all_blocs[:, 0] == board.shape[0] - 1)
+                   | (all_blocs[:, 1] == 0)
+                   | (all_blocs[:, 1] == board.shape[1] - 1))
+        weights = np.where(on_edge, guess_edge_weight, 1.0)
+        weights = weights / np.sum(weights)
+        rand_bloc = all_blocs[np.random.choice(np.arange(all_blocs.shape[0]),
+                                               p=weights)]
+        logger.info('Choosing: bloc=%s, mine_under=0', rand_bloc)
+        return np.concatenate((rand_bloc, [0]))[np.newaxis]
     except NoSolutionError:
         logger.warning('NoSolutionError')
         logger.info('Falling back to random guess')
+        # guess edges with more probability
         all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
         on_edge = ((all_blocs[:, 0] == 0)
                    | (all_blocs[:, 0] == board.shape[0] - 1)
