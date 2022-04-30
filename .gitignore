@@ -1,5 +1,6 @@
 rt/
 data/makeSATTable/commons-math3-3.6.1/docs/
+test/screenshots/
 __pycache__/
 .idea/
 logs/
@@ -7,3 +8,4 @@ logs/
 *.swp
 .envrc
 .ipython.startup
+.DS_Store
