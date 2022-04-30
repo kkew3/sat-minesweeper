@@ -7,11 +7,16 @@ import numpy as np
 from PIL import Image
 import cv2
 import mss
+import pyautogui as pg
 
 import vboard as vb
 import fullsatsolver as solver
 import actionplanner as planner
 import solverutils as sutils
+
+
+# world champion's clicking speed, approximately
+pg.PAUSE = 0.05
 
 
 class GameWontBeginError(Exception):
