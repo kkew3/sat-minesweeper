@@ -31,9 +31,10 @@ Now run command
 
 # run this to play without considering mines remaining
 python mwagent.py
-# run this to play taking into account mines remaining, where `-m99' below
-# indicates that there are 99 mines in total, as in Expert level.
-# you need to change this number according to the actual mines number
+# run this to play taking into account mines remaining,
+# where `-m99' below indicates that there are 99 mines
+# in total, as in Expert level. you need to change
+# this number according to the actual mines number
 #python mwagent.py -m99
 
 # or perform a one-step solution given a board
