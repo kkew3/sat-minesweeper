@@ -63,3 +63,8 @@ I take into account the number of mines remaining as soon as it's no longer intr
 
 - [Chord](http://www.minesweeper.info/wiki/Chord) uncovers mines more quickly.
   Usually, only a chord that uncovers more than one mine is necessary.
+
+## More about Minesweeper
+
+- [MinesweeperWiki](https://minesweepergame.com/website/authoritative-minesweeper/wiki/Main_Page)
+- [Minesweeper Game World Ranking](http://www.minesweeper.info/worldranking.php?ranking=1&utm_source=wechat_session&utm_medium=social&utm_oi=971045615085588480)
