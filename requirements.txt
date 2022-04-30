@@ -15,3 +15,4 @@ mss
 # dev purpose
 jupyter
 line_profiler[ipython]
+graphviz
