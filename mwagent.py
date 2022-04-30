@@ -76,7 +76,7 @@ def main():
     with mss.mss() as sct:
         scr = np.array(make_screenshot(sct).convert('L'))
         bd = vb.BoardDetector.new(scr)
-        pl = planner.GreedyChordActionPlanner(0.0, bd)
+        pl = planner.GreedyChordActionPlanner(0.0, bd, sct)
         si = StageIdentifier()
 
         logger.info('Process begun')

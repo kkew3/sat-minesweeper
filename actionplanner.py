@@ -317,10 +317,18 @@ class GreedyChordActionPlanner(ActionPlanner):
     the total number of clicks of the greedy algorithm is on average down
     21% with respect to NF strategy.
     """
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
+                 sct=None):
+        """
+        :param delay_after: ...
+        :param bdetector: ...
+        :param sct: if provided, should be the ``mss.mss()`` object used to
+                    provide instant feedback during ``click_mines``
+        """
         super().__init__(delay_after, bdetector)
         self.all_mines_ever_found = set()
         self.mines_flagged = set()
+        self.sct = sct
 
     def expand_partial_solutions(self, qidx_mine):
         no_mines = qidx_mine[qidx_mine[:, 2] == 0]
@@ -361,8 +369,24 @@ class GreedyChordActionPlanner(ActionPlanner):
             self._l.info('left clicks: %s', left_clicks)
             left_clicks = np.asarray(left_clicks)
             left_blocs = left_clicks[:, 0], left_clicks[:, 1]
-            for pxy in zip(*self.bd.boardloc_as_pixelloc(left_blocs)):
-                self.mc.click(pxy, True)
+            board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+            values = board[left_clicks[:, 0], left_clicks[:, 1]]
+            values_diff = np.zeros(left_clicks.shape[0], dtype=np.bool_)
+            for i, pxy in enumerate(zip(*self.bd.boardloc_as_pixelloc(left_blocs))):
+                if self.sct:
+                    prev_values = values
+                    if not values_diff[i]:
+                        self.mc.click(pxy, True)
+                        board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+                        values = board[left_clicks[:, 0], left_clicks[:, 1]]
+                        values_diff = np.logical_or((prev_values != values),
+                                                    values_diff)
+                    else:
+                        self._l.info('skipped clicking (%d, %d) because '
+                                     'clicking has no effect',
+                                     left_clicks[i, 0], left_clicks[i, 1])
+                else:
+                    self.mc.click(pxy, True)
         time.sleep(self.delay_after)
 
 
