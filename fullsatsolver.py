@@ -124,7 +124,8 @@ def attempt_full_solve(clauses, solver='minisat22', max_solutions=3000):
 def analyze_solutions(solutions, nv):
     solutions = np.sign(solutions[:, :nv])
     confidence = np.abs(np.sum(solutions, axis=0)) / solutions.shape[0]
-    mines = np.sign(np.sum(solutions, axis=0)) >= 0
+    # if confidence == 0, presume there's no mine so that we can proceed
+    mines = np.sign(np.sum(solutions, axis=0)) > 0
     return confidence, mines
 
 
