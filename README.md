@@ -61,8 +61,9 @@ I take into account the number of mines remaining as soon as it's no longer intr
 
 ## Future works
 
-- [Chord](http://www.minesweeper.info/wiki/Chord) uncovers mines more quickly.
-  Usually, only a chord that uncovers more than one mine is necessary.
+- Other solvers: e.g. I'm thinking about using KL-bisection and DFS algorithm rather than SAT to solve board.
+  I know it might be irrelevant as the project's name is *sat*-minesweeper, and I don't know whether it's even possible; but it would be interesting to try.
+  I may remove this entry in the future if the idea is found not possible or intractable for me.
 
 ## More about Minesweeper
 
