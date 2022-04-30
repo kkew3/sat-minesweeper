@@ -110,7 +110,11 @@ class NoSolutionError(Exception):
 def attempt_full_solve(clauses, solver='minisat22', max_solutions=3000):
     with SATSolver(name=solver, bootstrap_with=clauses) as s:
         solutions = list(itertools.islice(s.enum_models(), max_solutions + 1))
-    if not solutions:
+    # - `[]` occurs when clauses is nonempty and there's no solution
+    # - `[[]]` occurs when clauses is empty (for example when inferred mines
+    #   are tightly surround the uncovered number cells, and the board cannot
+    #   be encoded)
+    if solutions in ([], [[]]):
         raise NoSolutionError
     if len(solutions) == max_solutions + 1:
         raise TooManySolutionsError(solutions)
