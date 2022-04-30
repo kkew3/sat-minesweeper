@@ -1,3 +1,4 @@
+# Deprecated
 import operator as op
 from functools import reduce, partial
 import itertools

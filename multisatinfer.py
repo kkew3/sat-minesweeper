@@ -1,3 +1,4 @@
+# Deprecated
 """
 Divide the whole SAT problem into many independent subproblems and perform
 partial assignments.
