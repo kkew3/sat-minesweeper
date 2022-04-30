@@ -71,7 +71,7 @@ def main():
     with mss.mss() as sct:
         scr = np.array(make_screenshot(sct).convert('L'))
         bd = vb.BoardDetector.new(scr)
-        pl = planner.NoFlagActionPlanner(0.0, bd)
+        pl = planner.GreedyChordActionPlanner(0.0, bd)
         si = StageIdentifier()
 
         logger.info('Process begun')
@@ -88,17 +88,18 @@ def main():
             tic = time.time()
             try:
                 step = 0
-                bfm = planner.BoardFlagModifier()
+                bfm = planner.ChordBoardFlagModifier()
                 solutions = None
                 while stage == 'ongoing':
                     board = bfm(solutions, board)
+                    logger.debug('Detected board: %s', board.tolist())
                     if args.num_mines:
                         mine_remains = args.num_mines - np.sum(board == sutils.CID['f'])
                         logger.info('# Mine remains: %d', mine_remains)
                     else:
                         mine_remains = None
-                    logger.debug('Detected board: %s', board.tolist())
                     solutions = solver.solve(board, mine_remains)
+                    board = bfm.rewind_board()
                     pl.click_mines(board, solutions)
                     step += 1
 
