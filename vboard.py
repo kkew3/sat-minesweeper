@@ -324,7 +324,7 @@ class BoardDetector:
             mr = None
         else:
             mr = self.recognize_mr_digits(mrimg)
-        # I have to return `boardimg` so that `identify_stage` in `mwsolver.py`
+        # I have to return `boardimg` so that `identify_stage` in `mwagent.py`
         # sees it. I know this could be a bad design, but can't do anything
         # right now.
         return cells, mr, boardimg

@@ -30,7 +30,7 @@ Now run command
 #pip install -r requirements.txt
 
 # run this to play without considering mines remaining
-python mwsolver.py
+python mwagent.py
 # run this to play taking into account mines remaining, where `-m99' below
 # indicates that there are 99 mines in total, as in Expert level.
 # you need to change this number according to the actual mines number
