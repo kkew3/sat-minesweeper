@@ -34,7 +34,7 @@ python mwsolver.py
 # run this to play taking into account mines remaining, where `-m99' below
 # indicates that there are 99 mines in total, as in Expert level.
 # you need to change this number according to the actual mines number
-#python mwsolver.py -m99
+#python mwagent.py -m99
 
 # or perform a one-step solution given a board
 #python fullsatsolver.py example_boards/2.csv
