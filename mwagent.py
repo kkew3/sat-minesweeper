@@ -10,9 +10,12 @@ import mss
 import pyautogui as pg
 
 import vboard as vb
-import fullsatsolver as solver
 import actionplanner as planner
 import solverutils as sutils
+
+# Select your favorite solver here, by commenting and uncommenting
+import fullsatsolver as solver
+#import mcdfssolver as solver
 
 # world champion's clicking speed, approximately
 pg.PAUSE = 0.05
