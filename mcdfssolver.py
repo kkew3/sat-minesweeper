@@ -100,17 +100,12 @@ def trivial_solve_attempt(problems, mproblem):
     return solutions, confidences, problems, mproblem
 
 
-def make_problem_graph(problems, mproblem, consider_mines_th: int = 5):
+def make_problem_graph(problems, mproblem):
     logger = logging.getLogger(__name__ + '.make_problem_graph')
     graph = nx.Graph()
     if mproblem is not None:
-        if len(mproblem.vars) <= MAX_VARS and mproblem.k <= consider_mines_th:
-            # mr=True is used to note that this is mine remaining problem
-            graph.add_node(mproblem, mr=True)
-        else:
-            logger.info(
-                'Not adding mproblem because it\'s intractable with '
-                '#vars=%d and #mines=%d', mproblem.vars, mproblem.k)
+        # mr=True is used to note that this is mine remaining problem
+        graph.add_node(mproblem, mr=True)
     for p in problems:
         # note that duplicate problems are removed automatically here
         graph.add_node(p, mr=False)
@@ -268,7 +263,7 @@ def dfs_solve_problems(problems):
     return solutions, confidence
 
 
-def solve_board(board, mines_remain: int = None, consider_mines_th: int = 5):
+def solve_board(board, mines_remain: int = None):
     logger = logging.getLogger(__name__ + '.solve_board')
     problems, mproblem = encode_board(board, mines_remain)
     logger.debug('Encoded board: %s; %s', problems, mproblem)
@@ -279,7 +274,7 @@ def solve_board(board, mines_remain: int = None, consider_mines_th: int = 5):
     logger.debug('Trivial solve complete with (partial) solutions: %s; '
                  'confidences: %s', solutions, confidences)
     logger.debug('(Possibly) reduced encoding: %s; %s', problems, mproblem)
-    pgraph = make_problem_graph(problems, mproblem, consider_mines_th)
+    pgraph = make_problem_graph(problems, mproblem)
     if not pgraph and not solutions:
         raise NoSolutionError
     solve_problems_graph(pgraph, solutions, confidences)
@@ -310,9 +305,15 @@ def solve(board,
         return np.array([])
 
     try:
-        qidx_mine, confidences = solve_board(board, mines_remain,
-                                             consider_mines_th)
+        logger.info('Performing Min-cut DFS inference')
+        qidx_mine, confidences = solve_board(board, None)
         uscore = 1.0 - 1e-6
+        if np.max(confidences) <= uscore and mines_remain is not None \
+                and mines_remain <= consider_mines_th \
+                and np.sum(board == CID['q']) <= MAX_VARS:
+            logger.info('No confident decision. Rerunning inference using '
+                        'mines_remain')
+            qidx_mine, confidences = solve_board(board, mines_remain)
         if np.max(confidences) > uscore:
             return qidx_mine[np.nonzero(confidences > uscore)]
         if not np.allclose(np.max(confidences), 0.0):
