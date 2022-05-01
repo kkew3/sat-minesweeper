@@ -119,6 +119,8 @@ def make_problem_graph(problems, mproblem):
             # don't change the key name 'weight' -- it's used below in
             # mincut_bisect
             graph.add_edge(u, v, weight=jac)
+    logger.debug('Built graph with nodes: %s; edges: %s', graph.nodes,
+                 graph.edges(data='weight'))
     return graph
 
 
@@ -193,9 +195,9 @@ def solve_problems_graph(graph, solutions, confidences) -> None:
             try:
                 sols, confs = dfs_solve_problems(top_graph.nodes)
             except NoSolutionError:
-                logger.debug('NoSolutionError during dfs_solve_problems, with '
-                             'top_graph.nodes: %s; suppressed',
-                             top_graph.nodes)
+                logger.debug(
+                    'NoSolutionError during dfs_solve_problems, with '
+                    'top_graph.nodes: %s; suppressed', top_graph.nodes)
             solutions.update(sols)
             confidences.update(confs)
 
@@ -271,8 +273,9 @@ def solve_board(board, mines_remain: int = None):
         raise NoSolutionError
     solutions, confidences, problems, mproblem = \
             trivial_solve_attempt(problems, mproblem)
-    logger.debug('Trivial solve complete with (partial) solutions: %s; '
-                 'confidences: %s', solutions, confidences)
+    logger.debug(
+        'Trivial solve complete with (partial) solutions: %s; '
+        'confidences: %s', solutions, confidences)
     logger.debug('(Possibly) reduced encoding: %s; %s', problems, mproblem)
     pgraph = make_problem_graph(problems, mproblem)
     if not pgraph and not solutions:
@@ -315,8 +318,10 @@ def solve(board,
                         'mines_remain')
             qidx_mine, confidences = solve_board(board, mines_remain)
         if np.max(confidences) > uscore:
+            logger.debug('There exists confidences == 1; use them')
             return qidx_mine[np.nonzero(confidences > uscore)]
         if not np.allclose(np.max(confidences), 0.0):
+            logger.debug('There exists no confidence == 0; use max confidence')
             return qidx_mine[np.argmax(confidences)][np.newaxis]
         # confidence == [0.0, 0.0, ...], mines should be [False, False, ...]
         assert not np.any(qidx_mine[:, 2]), qidx_mine
