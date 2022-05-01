@@ -171,6 +171,27 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     return qidx_mine, confidence
 
 
+def guess(board: np.ndarray, all_blocs: np.ndarray, guess_edge_weight: float):
+    """
+    Random guess among all_blocs favoring edges by guess_edge_weight extent.
+
+    :param board: the board
+    :param all_blocs: of shape (m, 2) such that the ith row is the board
+           coordinate of an empty cell
+    :param guess_edge_weight: should be no less than 1.0
+    :return: the chosen board coordinate of shape (2,)
+    """
+    on_edge = ((all_blocs[:, 0] == 0)
+               | (all_blocs[:, 0] == board.shape[0] - 1)
+               | (all_blocs[:, 1] == 0)
+               | (all_blocs[:, 1] == board.shape[1] - 1))
+    weights = np.where(on_edge, guess_edge_weight, 1.0)
+    weights = weights / np.sum(weights)
+    rand_bloc = all_blocs[np.random.choice(
+        np.arange(all_blocs.shape[0]), p=weights)]
+    return rand_bloc
+
+
 def solve(board: np.ndarray,
           mines_remain: int = None,
           consider_mines_th: int = 5,
@@ -216,16 +237,7 @@ def solve(board: np.ndarray,
         # confidence == [0.0, 0.0, ...], mines should be [False, False, ...]
         assert not np.any(qidx_mine[:, 2]), qidx_mine
         logger.info('Confidences are all zero; failing back to random guess')
-        # guess edges with more probability
-        all_blocs = qidx_mine[:, :2]
-        on_edge = ((all_blocs[:, 0] == 0)
-                   | (all_blocs[:, 0] == board.shape[0] - 1)
-                   | (all_blocs[:, 1] == 0)
-                   | (all_blocs[:, 1] == board.shape[1] - 1))
-        weights = np.where(on_edge, guess_edge_weight, 1.0)
-        weights = weights / np.sum(weights)
-        rand_bloc = all_blocs[np.random.choice(
-            np.arange(all_blocs.shape[0]), p=weights)]
+        rand_bloc = guess(board, qidx_mine[:, :2], guess_edge_weight)
         logger.info('Choosing: bloc=%s, mine_under=0', rand_bloc)
         return np.concatenate((rand_bloc, [0]))[np.newaxis]
     except NoSolutionError:
@@ -233,14 +245,7 @@ def solve(board: np.ndarray,
         logger.info('Falling back to random guess')
         # guess edges with more probability
         all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
-        on_edge = ((all_blocs[:, 0] == 0)
-                   | (all_blocs[:, 0] == board.shape[0] - 1)
-                   | (all_blocs[:, 1] == 0)
-                   | (all_blocs[:, 1] == board.shape[1] - 1))
-        weights = np.where(on_edge, guess_edge_weight, 1.0)
-        weights = weights / np.sum(weights)
-        rand_bloc = all_blocs[np.random.choice(
-            np.arange(all_blocs.shape[0]), p=weights)]
+        rand_bloc = guess(board, all_blocs, guess_edge_weight)
         # if guess 1 it ends up mistaken but found after several steps
         rand_mine = 0
         logger.info('Choosing: bloc=%s, mine_under=%s', rand_bloc, rand_mine)
