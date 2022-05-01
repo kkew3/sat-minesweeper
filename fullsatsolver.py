@@ -77,7 +77,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     for x, y in zip(*np.nonzero((board <= 8) & (board >= 1))):
         surr = boxof(board, (x, y))
         vsurr = boxof(vartable, (x, y))
-        if np.sum(surr == CID['q']) > 0:
+        if np.any(surr == CID['q']):
             vars_ = sorted(vsurr[surr == CID['q']].tolist())
             vars__ = [qvar2vid[x] for x in vars_]
             logger.debug('Translated vars from %s to %s', vars_, vars__)
