@@ -1,5 +1,5 @@
 """
-DFS solver based on Kernighan-Lin partition algorithm to reduce recursion
+DFS solver based on global Min-cut partition algorithm to reduce recursion
 complexity.
 """
 
