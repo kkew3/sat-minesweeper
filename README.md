@@ -39,7 +39,10 @@ python mwagent.py
 
 # or perform a one-step solution given a board
 #python fullsatsolver.py example_boards/2.csv
+#python mcdfssolver.py example_boards/2.csv
 ```
+
+You may also switch solver used in `mwagent.py` by changing the solver import at the beginning of `mwagent.py` before launching it.
 
 Again, be sure not to overlap the Terminal window with the board.
 Wait 10 seconds the computer will play on its own.
@@ -57,6 +60,16 @@ If that symbol is always set or always cleared, a.k.a. having mine underneath or
 If that symbol is mostly one state but sometimes the other, then the former state is a better guess.
 Although it's the best guess one can make, still it sometimes loses.
 I take into account the number of mines remaining as soon as it's no longer intractable, giving higher accuracy.
+
+### `mcdfssolver`
+
+The core mechanism is to convert current MineSweeper board into a set of problems.
+For example: c\_i1, c\_i2, ... c\_im have in total k mines.
+Then I brute-force search all possible solutions in the set of problems.
+However, when there are many problems, it becomes intractable to search all possibilities.
+Therefore, I recursively bipartition the set of problems into smaller sets until the result set becomes tractable.
+I bipartition using [global Min-cut algorithm](https://stanford.edu/~rezab/classes/cme305/W14/Notes/4.pdf), using problems as nodes and Jaccard similarity between problems as edge capacity.
+In practice (I tried up to `40x80` board), `mcdfssolver` is 2x to 8x faster than `fullsatsolver`, and I haven't found any inconsistency between their results.
 
 <!-- TODO introducing other solvers -->
 
