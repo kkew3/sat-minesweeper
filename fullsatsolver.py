@@ -258,22 +258,21 @@ def _main():
     args = sutils.make_parser().parse_args()
     try:
         try:
-            board, mines_remain = sutils.read_board(args.board_csv)
+            board, mines_remain, first_bloc = sutils.read_board(args.board_csv)
         except sutils.EmptyCsvError:
             print('EmptyCsvError', file=sys.stderr)
-            sys.exit(4)
-        try:
-            qidx_mine = solve(board, mines_remain)
-        except NoSolutionError:
-            print('NoSolutionError', file=sys.stderr)
-            sys.exit(8)
+            return 4
+        if first_bloc and np.all(board == CID['q']):
+            qidx_mine = np.concatenate((first_bloc, [0]))[np.newaxis]
         else:
-            np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
+            qidx_mine = solve(board, mines_remain)
+        np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
     except KeyboardInterrupt:
         pass
     except BrokenPipeError:
         sys.stderr.close()
+    return 0
 
 
 if __name__ == '__main__':
-    _main()
+    sys.exit(_main())
