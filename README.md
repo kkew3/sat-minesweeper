@@ -101,7 +101,7 @@ In practice (I tried up to `40x80` board), `mcdfssolver` is 2x to 8x faster than
 
 ## Future works
 
-- Other solvers: e.g. I'm thinking about using KL-bisection and DFS algorithm together with SAT to solve board.
+- Other solvers: e.g. I'm thinking about using global Min-cut and SAT to solve board.
   I may remove this entry in the future if the idea is found not possible or intractable for me.
 
 ## More about Minesweeper
