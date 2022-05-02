@@ -37,8 +37,9 @@ class MouseClicker:
 
 # pylint: disable=too-few-public-methods
 class ActionPlanner:
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector):
-        self.mc = MouseClicker()
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
+                 _mc=None):
+        self.mc = _mc or MouseClicker()
         self.delay_after = delay_after
         self.bd = bdetector
         self._l = logging.getLogger('.'.join((__name__, type(self).__name__)))
@@ -324,14 +325,15 @@ class GreedyChordActionPlanner(ActionPlanner):
     def __init__(self,
                  delay_after: float,
                  bdetector: vb.BoardDetector,
-                 sct=None):
+                 sct=None,
+                 _mc=None):
         """
         :param delay_after: ...
         :param bdetector: ...
         :param sct: if provided, should be the ``mss.mss()`` object used to
                     provide instant feedback during ``click_mines``
         """
-        super().__init__(delay_after, bdetector)
+        super().__init__(delay_after, bdetector, _mc=_mc)
         self.all_mines_ever_found = set()
         self.mines_flagged = set()
         self.sct = sct
