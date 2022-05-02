@@ -16,6 +16,8 @@ Due to the new interface of freeminesweeper.org, it cannot begin a new round aut
 
 ## How to use
 
+### Online game
+
 Open [freeminesweeper.org](https://freeminesweeper.org)'s minesweeper board page.
 Be sure to expose the entire board on screen.
 Now run command
@@ -30,24 +32,48 @@ Now run command
 #pip install -r requirements.txt
 
 # run this to play without considering mines remaining
-python mwagent.py
+python -m mwagent
+
 # run this to play taking into account mines remaining,
 # where `-m99' below indicates that there are 99 mines
 # in total, as in Expert level. you need to change
 # this number according to the actual mines number
-#python mwagent.py -m99
+#python -m mwagent -m99
 
-# or perform a one-step solution given a board
-#python fullsatsolver.py example_boards/2.csv
-#python mcdfssolver.py example_boards/2.csv
+# run this to use a different solver than the default
+# one. a list of solvers can be found by
+# `python -m mwagent --help`
+#python -m mwagent -Smcdfssolver
 ```
-
-You may also switch solver used in `mwagent.py` by changing the solver import at the beginning of `mwagent.py` before launching it.
 
 Again, be sure not to overlap the Terminal window with the board.
 Wait 10 seconds the computer will play on its own.
 
 Enjoy watching it playing!
+
+### One-step solution
+
+Perform a one-step solution given a board.
+Find example boards in [example\_boards](example_boards).
+
+```bash
+python -m fullsatsolver example_boards/2.csv
+#python -m mcdfssolver example_boards/2.csv
+```
+
+### Virtual game
+
+Given a board with all cells uncovered and the first-step solution, you may watch the program playing virtual Minesweeper game without opening the browser.
+Find example boards in [example\_boards/key](example_boards/key).
+
+```bash
+python -m virtual.mwagent example_boards/key/1.csv
+```
+
+You may also switch different solver using `-S` option.
+See more help by `python -m virtual.mwagent --help`.
+
+The virtual games can be used to compare which solver is faster on which type of board.
 
 ## Mechanism
 
