@@ -2,20 +2,16 @@ import argparse
 import time
 import logging
 import logging.config
+import importlib
 
 import numpy as np
 from PIL import Image
-import cv2
 import mss
 import pyautogui as pg
 
 import vboard as vb
 import actionplanner as planner
 import solverutils as sutils
-
-# Select your favorite solver here, by commenting and uncommenting
-import fullsatsolver as solver
-#import mcdfssolver as solver
 
 # world champion's clicking speed, approximately
 pg.PAUSE = 0.05
@@ -41,6 +37,12 @@ def make_parser():
         type=int,
         metavar='N',
         help='total number of mines')
+    parser.add_argument(
+        '-S',
+        '--solver',
+        choices=['fullsatsolver', 'mcdfssolver'],
+        default='fullsatsolver',
+        help='the solver to use; default to %(default)s')
     return parser
 
 
@@ -64,6 +66,7 @@ def main():
     args = make_parser().parse_args()
     logging.config.fileConfig('logging.ini')
     logger = logging.getLogger()
+    solver = importlib.import_module(args.solver)
 
     with mss.mss() as sct:
         scr = np.array(make_screenshot(sct).convert('L'))
