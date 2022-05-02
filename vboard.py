@@ -9,6 +9,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import cv2
 from PIL import Image
+from solverutils import CID
 
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
@@ -324,9 +325,6 @@ class BoardDetector:
             mr = None
         else:
             mr = self.recognize_mr_digits(mrimg)
-        # I have to return `boardimg` so that `identify_stage` in `mwagent.py`
-        # sees it. I know this could be a bad design, but can't do anything
-        # right now.
         return cells, mr, boardimg
 
     @staticmethod
@@ -402,6 +400,26 @@ class BoardDetector:
         return min(
             abs(x.astype(np.int64) - query.astype(np.int64))
             for x in templates)
+
+
+# pylint: disable=too-few-public-methods
+class StageIdentifier:
+    def __init__(self):
+        self.win_text = loadimg('new/win_text.png')
+
+    def identify_stage(self, scr, board):
+        """
+        :param scr: should be an array of shape (H, W), of dtype uint8
+        :param board: the recognized board
+        """
+        match_tol = 25
+        if np.any(
+                cv2.matchTemplate(scr, self.win_text, cv2.TM_SQDIFF) <=
+                match_tol):
+            return 'win'
+        if np.any(board == CID['m']):
+            return 'lost'
+        return 'ongoing'
 
 
 def _main():

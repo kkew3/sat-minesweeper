@@ -43,26 +43,6 @@ def make_parser():
     return parser
 
 
-# pylint: disable=too-few-public-methods
-class StageIdentifier:
-    def __init__(self):
-        self.win_text = vb.loadimg('new/win_text.png')
-
-    def identify_stage(self, scr, board):
-        """
-        :param scr: should be an array of shape (H, W), of dtype uint8
-        :param board: the recognized board
-        """
-        match_tol = 25
-        if np.any(
-                cv2.matchTemplate(scr, self.win_text, cv2.TM_SQDIFF) <=
-                match_tol):
-            return 'win'
-        if np.any(board == sutils.CID['m']):
-            return 'lost'
-        return 'ongoing'
-
-
 # Deprecated. This function does not adapt to the new interface of
 # minesweeper.org
 #def identify_stage(scr, board):
@@ -88,7 +68,7 @@ def main():
         scr = np.array(make_screenshot(sct).convert('L'))
         bd = vb.BoardDetector.new(scr)
         pl = planner.GreedyChordActionPlanner(0.0, bd, sct)
-        si = StageIdentifier()
+        si = vb.StageIdentifier()
 
         logger.info('Process begun')
         try:
