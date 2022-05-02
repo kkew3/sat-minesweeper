@@ -22,7 +22,8 @@ pg.PAUSE = 0.05
 
 
 class GameWontBeginError(Exception):
-    pass
+    def __init__(self):
+        super().__init__('game hasn\'t begun yet')
 
 
 def make_parser():
@@ -80,7 +81,7 @@ def main():
             stage = si.identify_stage(boardimg, board)
 
             if stage != 'ongoing':
-                raise GameWontBeginError('game hasn\'t begun yet')
+                raise GameWontBeginError
             tic = time.time()
             try:
                 step = 0
@@ -108,8 +109,7 @@ def main():
                 logger.info('Time used: %f seconds', toc - tic)
         except KeyboardInterrupt:
             pass
-        except (vb.BoardNotFoundError, GameWontBeginError,
-                solver.NoSolutionError):
+        except (vb.BoardNotFoundError, GameWontBeginError):
             logger.exception('')
         except Exception:
             logger.exception('Unexpected exception')
