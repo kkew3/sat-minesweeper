@@ -166,11 +166,11 @@ class BoardDetector:
             6,
             7,
             8,
-            9,
-            10,
-            10,
-            10,
-            11,
+            CID['f'],
+            CID['m'],
+            CID['m'],
+            CID['m'],
+            CID['q'],
         ]
 
     @property
