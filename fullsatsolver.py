@@ -195,7 +195,8 @@ def guess(board: np.ndarray, all_blocs: np.ndarray, guess_edge_weight: float):
 def solve(board: np.ndarray,
           mines_remain: int = None,
           consider_mines_th: int = 5,
-          guess_edge_weight: float = 2.0):
+          guess_edge_weight: float = 2.0,
+          _first_bloc=None):
     """
     Solve the board.
 
@@ -214,7 +215,11 @@ def solve(board: np.ndarray,
     logger = _l(solve.__name__)
     if np.all(board == CID['q']):
         logger.info('Performing first step random guess')
-        randbloc = np.unravel_index(np.random.randint(board.size), board.shape)
+        if _first_bloc:
+            randbloc = _first_bloc
+        else:
+            randbloc = np.unravel_index(
+                np.random.randint(board.size), board.shape)
         logger.info('Choosing bloc=%s', randbloc)
         return np.concatenate((randbloc, [0]))[np.newaxis]
     if np.all(board != CID['q']):
@@ -262,10 +267,7 @@ def _main():
         except sutils.EmptyCsvError:
             print('EmptyCsvError', file=sys.stderr)
             return 4
-        if first_bloc and np.all(board == CID['q']):
-            qidx_mine = np.concatenate((first_bloc, [0]))[np.newaxis]
-        else:
-            qidx_mine = solve(board, mines_remain)
+        qidx_mine = solve(board, mines_remain, _first_bloc=first_bloc)
         np.savetxt(sys.stdout, qidx_mine, delimiter=',', fmt='%d')
     except KeyboardInterrupt:
         pass
