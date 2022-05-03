@@ -69,10 +69,13 @@ def reduce_problem(solutions, problem):
 
 
 def trivial_solve_attempt(problems, mproblem):
-    unsolved_problems = []
+    logger = logging.getLogger(__name__ + '.trivial_solve_attempt')
     solutions = {}
+    problems = set(problems)
+    logger.debug('# problems=%d', len(problems))
     updated = True
     while updated:
+        unsolved_problems = set()
         updated = False
         for p in problems:
             if len(p.vars) == p.k:
@@ -83,10 +86,13 @@ def trivial_solve_attempt(problems, mproblem):
                 solutions.update((v, False) for v in p.vars)
                 updated = True
             else:
-                unsolved_problems.append(p)
-        problems = (reduce_problem(solutions, p) for p in unsolved_problems)
-        problems = set(filter(None, problems))
+                unsolved_problems.add(p)
+        problems = set(
+            filter(None,
+                   (reduce_problem(solutions, p) for p in unsolved_problems)))
+        logger.debug('# problems reduced to %d', len(problems))
 
+    logger.debug('mproblem is %s', mproblem)
     if mproblem is not None:
         mproblem = reduce_problem(solutions, mproblem)
     if mproblem is not None:
@@ -96,6 +102,7 @@ def trivial_solve_attempt(problems, mproblem):
         elif mproblem.k == 0:
             solutions.update((v, False) for v in mproblem.vars)
             mproblem = None
+    logger.debug('mproblem reduced to %s', mproblem)
     confidences = {v: 1.0 for v in solutions}
     return solutions, confidences, problems, mproblem
 
