@@ -157,7 +157,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     try:
         solutions = attempt_full_solve(clauses)
     except TooManySolutionsError as e:
-        logger.debug('Handling TooManySolutionError')
+        logger.info('TooManySolutionsError')
         confidence, mine = attempt_probing(qvars, clauses, e.solutions, th=0.2)
         logger.debug('Assumption solve solutions=%s, confidence=%s',
                      mine.tolist(), confidence.tolist())
