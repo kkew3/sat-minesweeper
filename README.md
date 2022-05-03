@@ -10,7 +10,7 @@ This is a SAT-based MineSweeper solver.
 It interactively plays online MineSweeper game provided by [freeminesweeper.org](https://freeminesweeper.org) through usual human-computer interface.
 It detects the board by sliding window template matching and uncover the mines by simulating left/right mouse clicks.
 It can play on all configuration of boards (height, width, number of mines).
-It logs all events needed to reproduce the process.
+It logs all events needed to reproduce the process -- at `logs/run.log` by default.
 It detects whether it loses or wins.
 Due to the new interface of freeminesweeper.org, it cannot begin a new round automatically now.
 
