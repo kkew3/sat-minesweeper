@@ -39,7 +39,7 @@ class NCKProblemEncoder:
 def encode_board(board: np.ndarray, mine_remains: int = None) \
         -> typing.Tuple[typing.List[int], Clauses]:
     logger = _l(encode_board.__name__)
-    vartable = np.arange(1, board.size + 1).reshape(board.shape)
+    vartable = np.arange(board.size).reshape(board.shape)
     clauses = set()
 
     qvars_to_use = []
@@ -61,7 +61,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
         vsurr = sutils.boxof(vartable, (x, y))
         if np.any(surr == CID['q']):
             vars_ = sorted(vsurr[surr == CID['q']].tolist())
-            vars__ = [qvar2vid[x] for x in vars_]
+            vars__ = [qvar2vid[v] for v in vars_]
             logger.debug('Translated vars from %s to %s', vars_, vars__)
             k = board[x, y] - np.sum((surr == CID['m']) | (surr == CID['f']))
             C = pe(vars__, k)
@@ -111,7 +111,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
     confidence, mine = analyze_solutions(solutions, len(qvars))
     logger.debug('Full solve solutions=%s, confidence=%s', mine.tolist(),
                  confidence.tolist())
-    qidx = np.array(qvars) - 1
+    qidx = np.array(qvars)
     qidx = np.stack(np.unravel_index(qidx, board.shape), axis=1)
     logger.debug('Involved blocs=%s', qidx.tolist())
     qidx_mine = np.concatenate((qidx, mine[:, np.newaxis]), axis=1)
