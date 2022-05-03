@@ -19,34 +19,20 @@ def _l(*args):
 
 # pylint: disable=too-few-public-methods
 class NCKProblemEncoder:
-    def __init__(self, n_vars_total: int) -> None:
-        self.s1 = n_vars_total + 1
-        self.logger = _l(NCKProblemEncoder.__name__)
+    def __init__(self, n_vars_total: int):
+        self.top_id = n_vars_total
 
-    # TODO there may be some redundant code during encoding because I didn't
-    #      read much into `pysat.card.CardEnc.equals`'s documentation
-    def __call__(self, k, vars_):
-        assert max(map(abs, vars_)) < self.s1, 'max vars exceeded nvars_total'
-        assert len(vars_) == len(set(vars_)), 'vars_ element must be unique'
-        assert all(x > 0 for x in vars_), 'vars_ must be greater than 0'
-        n = len(vars_)
-        cnf = CardEnc.equals(range(1, n + 1), k)
+    def __call__(self, vars_, k):
+        # these asserts can be safely optimized away if there's no bug upstream
+        assert all(x > 0 for x in vars_), \
+               'vars_ must be positive but got ' + str(vars_)
+        assert max(vars_) <= self.top_id, \
+               'max var exceeds top_id {}>{}'.format(max(vars_), self.top_id)
+        cnf = CardEnc.equals(vars_, k, top_id=self.top_id)
+        # why to use max here is that cnf might not involve auxiliary variable,
+        # causing a small cnf.nv (smaller than self.top_id)
+        self.top_id = max(self.top_id, cnf.nv)
         C = cnf.clauses
-        # ns: number of auxiliary varibales in C
-        ns = len(set(map(abs, itertools.chain.from_iterable(C)))) - n
-        assert ns >= 0, (ns, n, C, k, vars_)
-        sdiff = self.s1 - (n + 1)
-        assert sdiff >= 0, (self.s1, n, sdiff, k, vars_)
-        if sdiff:
-            C = [[(x + sdiff) if x > n else x for x in r] for r in C]
-            C = [[(x - sdiff) if x < -n else x for x in r] for r in C]
-        tr = dict(zip(range(1, n + 1), vars_))
-        tr.update(dict(zip(range(-1, -n - 2, -1), [-x for x in vars_])))
-        C = [[tr.get(x, x) for x in r] for r in C]
-        self.s1 += ns
-        self.logger.debug('Updated self.s1 from %d to %d', self.s1 - ns,
-                          self.s1)
-        C = [[int(x) for x in r] for r in C]
         return C
 
 
@@ -71,8 +57,9 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     else:
         for x, y in zip(*np.nonzero(board == CID['q'])):
             qvars_to_use.append(int(vartable[x, y]))
-    qvar2vid = dict((v, i + 1) for i, v in enumerate(qvars_to_use))
-    pe = NCKProblemEncoder(len(qvar2vid))
+    # qvars_to_use must be in ascending order
+    qvar2vid = {v: i for i, v in enumerate(qvars_to_use, start=1)}
+    pe = NCKProblemEncoder(len(qvars_to_use))
 
     for x, y in zip(*np.nonzero((board <= 8) & (board >= 1))):
         surr = boxof(board, (x, y))
@@ -81,19 +68,17 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
             vars_ = sorted(vsurr[surr == CID['q']].tolist())
             vars__ = [qvar2vid[x] for x in vars_]
             logger.debug('Translated vars from %s to %s', vars_, vars__)
-            vars_ = vars__
             k = board[x, y] - np.sum((surr == CID['m']) | (surr == CID['f']))
-            C = pe(k, vars_)
+            C = pe(vars__, k)
             logger.debug('Encoded k=%d vars=%s dcell=%s as clauses C=%s', k,
-                         vars_, (x, y), C)
+                         vars__, (x, y), C)
             clauses.update(map(tuple, C))
     if mine_remains is not None:
-        vars_ = [qvar2vid[k] for k in sorted(qvar2vid)]
-        clauses.update(map(tuple, pe(mine_remains, vars_)))
+        vars_ = [qvar2vid[k] for k in qvars_to_use]
+        clauses.update(map(tuple, pe(vars_, mine_remains)))
     clauses = list(map(list, clauses))
-    qvars = list(qvar2vid)
-    logger.debug('Involved vars=%s, final clauses=%s', qvars, clauses)
-    return qvars, clauses
+    logger.debug('Involved vars=%s, final clauses=%s', qvars_to_use, clauses)
+    return qvars_to_use, clauses
 
 
 class NoSolutionError(Exception):
@@ -114,7 +99,7 @@ def attempt_full_solve(clauses, solver='minisat22', max_solutions=10000):
         logger.warning('TooManySolutionsError. '
                        'There\'s nothing to do about it')
     else:
-        logger.debug('Yielded %d solutions.', len(solutions))
+        logger.debug('Yielded %d solutions', len(solutions))
     return np.array(solutions, dtype=np.int64)
 
 
@@ -135,6 +120,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
                  confidence.tolist())
     qidx = np.array(qvars) - 1
     qidx = np.stack(np.unravel_index(qidx, board.shape), axis=1)
+    logger.debug('Involved blocs=%s', qidx.tolist())
     qidx_mine = np.concatenate((qidx, mine[:, np.newaxis]), axis=1)
     return qidx_mine, confidence
 
