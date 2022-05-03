@@ -122,14 +122,9 @@ def make_problem_graph(problems, mproblem):
     return graph
 
 
-class NodeTooLessError(Exception):
-    pass
-
-
 def mincut_bisect(graph):
     logger = logging.getLogger(__name__ + '.mincut_bisect')
-    if len(graph) < 2:
-        raise NodeTooLessError
+    assert len(graph) >= 2, graph.nodes
     logger.debug('Bisection start')
     nodes = list(graph.nodes)
     logger.debug('Nodes: %s', nodes)
@@ -158,13 +153,17 @@ def solve_problems_graph(graph, solutions, confidences) -> None:
     while workingq:
         top_graph = workingq.pop()
         n_vars = len(get_vars(top_graph.nodes))
-        if n_vars > MAX_VARS:
+        if n_vars > MAX_VARS and len(top_graph) >= 2:
             logger.warning(
                 'Performing Min-cut bisection due to '
                 'exceeding n_vars limit (%d > %d)', n_vars, MAX_VARS)
-            # NodeTooLessError shouldn't be raised unless MAX_VARS is too small
             workingq.extend(map(graph.subgraph, mincut_bisect(top_graph)))
         else:
+            if n_vars > MAX_VARS:
+                logger.warning(
+                    'Exceeding n_vars limit (%d > %d) but top_graph'
+                    ' has only %d node left; stopped bisection', n_vars,
+                    MAX_VARS, len(top_graph))
             # top_graph.nodes, i.e. a set of problems.
             # top_graph can't be an empty graph, as mincut_bisect won't output
             # empty graph.
