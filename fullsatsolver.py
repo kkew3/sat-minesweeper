@@ -96,17 +96,12 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     return qvars, clauses
 
 
-class TooManySolutionsError(Exception):
-    def __init__(self, solutions):
-        super().__init__()
-        self.solutions = solutions
-
-
 class NoSolutionError(Exception):
     pass
 
 
-def attempt_full_solve(clauses, solver='minisat22', max_solutions=3000):
+def attempt_full_solve(clauses, solver='minisat22', max_solutions=10000):
+    logger = _l(attempt_full_solve.__name__)
     with SATSolver(name=solver, bootstrap_with=clauses) as s:
         solutions = list(itertools.islice(s.enum_models(), max_solutions + 1))
     # - `[]` occurs when clauses is nonempty and there's no solution
@@ -116,7 +111,10 @@ def attempt_full_solve(clauses, solver='minisat22', max_solutions=3000):
     if solutions in ([], [[]]):
         raise NoSolutionError
     if len(solutions) == max_solutions + 1:
-        raise TooManySolutionsError(solutions)
+        logger.warning('TooManySolutionsError. '
+                       'There\'s nothing to do about it')
+    else:
+        logger.debug('Yielded %d solutions.', len(solutions))
     return np.array(solutions, dtype=np.int64)
 
 
@@ -128,43 +126,13 @@ def analyze_solutions(solutions, nv):
     return confidence, mines
 
 
-def attempt_probing(all_vars, clauses, solutions, solver='minisat22', th=1e-6):
-    logger = _l(attempt_probing.__name__)
-    solutions = np.array(solutions)
-    confidence, mine = analyze_solutions(solutions, len(all_vars))
-    quasiconfident = np.nonzero(confidence > 1.0 - th)[0]
-    with SATSolver(name=solver, bootstrap_with=clauses) as s:
-        for i in map(int, quasiconfident):
-            neg = s.solve(assumptions=[-(i + 1)])
-            pos = s.solve(assumptions=[i + 1])
-            if neg and not pos:
-                logger.debug('+%d (a.k.a +%d) excluded', i + 1, all_vars[i])
-                mine[i] = False
-                confidence[i] = 1.0
-            elif pos and not neg:
-                logger.debug('-%d (a.k.a. -%d) excluded', i + 1, all_vars[i])
-                mine[i] = True
-                confidence[i] = 1.0
-            else:
-                logger.debug('%d (a.k.a. %d) undecided', i + 1, all_vars[i])
-                confidence[i] = 0.0
-    return confidence, mine
-
-
 def solve_board(board: np.ndarray, mines_remain: int = None):
     logger = _l(solve_board.__name__)
     qvars, clauses = encode_board(board, mines_remain)
-    try:
-        solutions = attempt_full_solve(clauses)
-    except TooManySolutionsError as e:
-        logger.info('TooManySolutionsError')
-        confidence, mine = attempt_probing(qvars, clauses, e.solutions, th=0.2)
-        logger.debug('Assumption solve solutions=%s, confidence=%s',
-                     mine.tolist(), confidence.tolist())
-    else:
-        confidence, mine = analyze_solutions(solutions, len(qvars))
-        logger.debug('Full solve solutions=%s, confidence=%s', mine.tolist(),
-                     confidence.tolist())
+    solutions = attempt_full_solve(clauses)
+    confidence, mine = analyze_solutions(solutions, len(qvars))
+    logger.debug('Full solve solutions=%s, confidence=%s', mine.tolist(),
+                 confidence.tolist())
     qidx = np.array(qvars) - 1
     qidx = np.stack(np.unravel_index(qidx, board.shape), axis=1)
     qidx_mine = np.concatenate((qidx, mine[:, np.newaxis]), axis=1)
