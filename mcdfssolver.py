@@ -16,7 +16,7 @@ import numpy as np
 import solverutils as sutils
 from solverutils import CID
 
-MAX_VARS = 32
+MAX_VARS = 24
 MAX_ITER = 2**24  # takes approximately 1 second
 
 NCKProblem = collections.namedtuple('NCKProblem', 'vars k')
@@ -215,7 +215,7 @@ def _check_validity_trace(vars2problems, trace):
     return True
 
 
-def dfs_solve_problems(problems):
+def dfs_solve_problems(problems, max_solutions=10000):
     """
     Traverse all possibilities by deep first search and reach solutions.
     """
@@ -246,6 +246,10 @@ def dfs_solve_problems(problems):
             to_open.append(top_trace + [(varlist[len(top_trace)], False)])
         else:
             candidate_solutions.append([x[1] for x in top_trace])
+            if len(candidate_solutions) == max_solutions + 1:
+                logger.warning('TooManySolutionsError. '
+                               'There\'s nothing to do about it')
+                break
     if not candidate_solutions:
         # this might happen when the DFS tree is very deep that exceeds
         # MAX_ITER
@@ -253,6 +257,7 @@ def dfs_solve_problems(problems):
     # now candidate_solutions consists of 1 and -1, where 1 means there's mine
     # and -1 means there's no mine
     candidate_solutions = np.asarray(candidate_solutions) * 2 - 1
+    logger.debug('# candidate_solutions=%d', candidate_solutions.shape[0])
     confidence = np.abs(np.sum(candidate_solutions, axis=0)) \
             / candidate_solutions.shape[0]
     confidence = dict(zip(varlist, confidence))
