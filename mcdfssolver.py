@@ -266,7 +266,9 @@ def dfs_solve_problems(problems):
     confidence = np.abs(np.sum(candidate_solutions, axis=0)) \
             / candidate_solutions.shape[0]
     confidence = dict(zip(varlist, confidence))
-    # if confidence == 0, presume there's no mine so that we can proceed
+    # if confidence == 0, presume there's no mine so that we can proceed.
+    # use deterministic strategy here -- don't guess with weight, since the
+    # latter is less optimal.
     solutions = np.sign(np.sum(candidate_solutions, axis=0)) > 0
     solutions = dict(zip(varlist, solutions))
     return solutions, confidence
