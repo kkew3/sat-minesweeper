@@ -3,6 +3,9 @@ The solver interface is designed to read CSV input of the mine board and
 write CSV output indicating which tiles to uncover and what shall be
 expected underneath. It should have little integration with the vision and
 the mouse action simulation modules.
+
+This module also defines some utility function and exception found in solver
+modules.
 """
 
 import sys
@@ -18,6 +21,35 @@ CID = {
     'm': 10,
     'q': 11,
 }
+
+
+class NoSolutionError(Exception):
+    pass
+
+
+def boxof(array, center, radius=1):
+    return array[max(0, center[0] - radius):center[0] + radius + 1,
+                 max(0, center[1] - radius):center[1] + radius + 1]
+
+
+# pylint: disable=too-few-public-methods
+class IBoxOf:
+    """
+    When called, returns indicies of cells in the box of center.
+    """
+    def __init__(self, board_shape):
+        # use the same buffer to speed up
+        self.z = np.zeros(board_shape, dtype=np.bool_)
+
+    def __call__(self, center, radius=1, exclude_center=False):
+        self.z[max(0, center[0] - radius):center[0] + radius + 1,
+               max(0, center[1] - radius):center[1] + radius + 1] = True
+        if exclude_center:
+            self.z[center] = False
+        i = np.nonzero(self.z)
+        # make self.z back to zeros
+        self.z[i[0], i[1]] = False
+        return i
 
 
 def make_parser():

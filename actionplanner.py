@@ -37,7 +37,9 @@ class MouseClicker:
 
 # pylint: disable=too-few-public-methods
 class ActionPlanner:
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
+    def __init__(self,
+                 delay_after: float,
+                 bdetector: vb.BoardDetector,
                  _mc=None):
         self.mc = _mc or MouseClicker()
         self.delay_after = delay_after
@@ -105,24 +107,6 @@ class NoFlagActionPlanner(ActionPlanner):
 # Begin of GreedyChordActionPlanner
 
 
-class BoxOf:
-    """
-    When called, returns indicies of cells in the box of center. This is
-    different from ``fullsatsolver.boxof``.
-    """
-    def __init__(self, board_shape):
-        # use the same buffer to speed up
-        self.z = np.zeros(board_shape, dtype=np.bool_)
-
-    def __call__(self, center, radius=1):
-        self.z[max(0, center[0] - radius):center[0] + radius + 1,
-               max(0, center[1] - radius):center[1] + radius + 1] = True
-        i = np.nonzero(self.z)
-        # make self.z back to zeros
-        self.z[i[0], i[1]] = False
-        return i
-
-
 def _locs_from_solutions(qidx_mine):
     """
     Given solutions returns the bi-partition based on whether there are
@@ -139,9 +123,10 @@ def _locs_from_solutions(qidx_mine):
     return ccm_loc, ccnm_loc
 
 
-def _calc_chord_stats(boxof: BoxOf, board, ccm_loc, ccnm_loc, th=2):
+def _calc_chord_stats(iboxof: sutils.IBoxOf, board, ccm_loc, ccnm_loc, th=2):
     """
-    :param boxof: the BoxOf function object to compute box indices
+    :param iboxof: the solverutils.IBoxOf function object to compute box
+           indices
     :param board: current board
     :param ccm_loc: the first return value of ``_locs_from_solutions``
     :param ccnm_loc: the second return value of ``_locs_from_solutions``
@@ -167,7 +152,7 @@ def _calc_chord_stats(boxof: BoxOf, board, ccm_loc, ccnm_loc, th=2):
         box_cctf_loc = set()  # covered cells to be flagged
         box_ccnm_loc = set()  # covered cells to be chorded
         box_fc_count = 0  # already flagged cells count
-        for box_bxy in zip(*boxof(bxy)):
+        for box_bxy in zip(*iboxof(bxy)):
             if board[box_bxy] == sutils.CID['f']:
                 box_fc_count += 1
             elif box_bxy in ccm_loc:
@@ -260,8 +245,8 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
     ccm_loc, ccnm_loc = _locs_from_solutions(qidx_mine)
     _l.debug('ccm_loc: %s', ccm_loc)
     _l.debug('ccnm_loc: %s', ccnm_loc)
-    boxof = BoxOf(board.shape)
-    ucells_to_chord, ccnmnc_loc = _calc_chord_stats(boxof, board, ccm_loc,
+    iboxof = sutils.IBoxOf(board.shape)
+    ucells_to_chord, ccnmnc_loc = _calc_chord_stats(iboxof, board, ccm_loc,
                                                     ccnm_loc, th)
     _l.debug('ucells_to_chord: %s', ucells_to_chord)
     _l.debug('ccnmnc_loc: %s', ccnmnc_loc)

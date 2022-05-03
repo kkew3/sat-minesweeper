@@ -22,16 +22,6 @@ MAX_ITER = 2**24  # takes approximately 1 second
 NCKProblem = collections.namedtuple('NCKProblem', 'vars k')
 
 
-# a placeholder
-class NoSolutionError(Exception):
-    pass
-
-
-def boxof(array, center, radius=1):
-    return array[max(0, center[0] - radius):center[0] + radius + 1,
-                 max(0, center[1] - radius):center[1] + radius + 1]
-
-
 def encode_board(board, mines_remain):
     """
     Encode the board into a list of ``NCKProblem``s and an optional
@@ -40,8 +30,8 @@ def encode_board(board, mines_remain):
     vartable = np.arange(board.size).reshape(board.shape)
     problems = []
     for x, y in zip(*np.nonzero((board >= 1) & (board <= 8))):
-        box = boxof(board, (x, y))
-        vbox = boxof(vartable, (x, y))
+        box = sutils.boxof(board, (x, y))
+        vbox = sutils.boxof(vartable, (x, y))
         if np.any(box == CID['q']):
             problems.append(
                 NCKProblem(
@@ -201,7 +191,7 @@ def solve_problems_graph(graph, solutions, confidences) -> None:
             # there must be at least one node in top_graph
             try:
                 sols, confs = dfs_solve_problems(top_graph.nodes)
-            except NoSolutionError:
+            except sutils.NoSolutionError:
                 logger.debug(
                     'NoSolutionError during dfs_solve_problems, with '
                     'top_graph.nodes: %s; suppressed', top_graph.nodes)
@@ -259,7 +249,7 @@ def dfs_solve_problems(problems):
     if not candidate_solutions:
         # this might happen when the DFS tree is very deep that exceeds
         # MAX_ITER
-        raise NoSolutionError
+        raise sutils.NoSolutionError
     # now candidate_solutions consists of 1 and -1, where 1 means there's mine
     # and -1 means there's no mine
     candidate_solutions = np.asarray(candidate_solutions) * 2 - 1
@@ -279,7 +269,7 @@ def solve_board(board, mines_remain: int = None):
     problems, mproblem = encode_board(board, mines_remain)
     logger.debug('Encoded board: %s; %s', problems, mproblem)
     if not problems and not mproblem:
-        raise NoSolutionError
+        raise sutils.NoSolutionError
     solutions, confidences, problems, mproblem = \
             trivial_solve_attempt(problems, mproblem)
     logger.debug(
@@ -288,12 +278,12 @@ def solve_board(board, mines_remain: int = None):
     logger.debug('(Possibly) reduced encoding: %s; %s', problems, mproblem)
     pgraph = make_problem_graph(problems, mproblem)
     if not pgraph and not solutions:
-        raise NoSolutionError
+        raise sutils.NoSolutionError
     solve_problems_graph(pgraph, solutions, confidences)
     logger.debug('Graph solve complete with solutions: %s; confidences: %s',
                  solutions, confidences)
     if not solutions:
-        raise NoSolutionError
+        raise sutils.NoSolutionError
     varlist = list(solutions)
     qidx = np.stack(np.unravel_index(varlist, board.shape), axis=1)
     mine = np.array([solutions[v] for v in varlist], dtype=np.int64)
@@ -343,7 +333,7 @@ def solve(board,
         rand_bloc = guess(board, qidx_mine[:, :2], guess_edge_weight)
         logger.info('Choosing: bloc=%s, mine_under=0', rand_bloc)
         return np.concatenate((rand_bloc, [0]))[np.newaxis]
-    except NoSolutionError:
+    except sutils.NoSolutionError:
         logger.warning('NoSolutionError')
         logger.info('Falling back to random guess')
         # guess edges with more probability

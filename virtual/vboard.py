@@ -8,27 +8,8 @@ import itertools
 import numpy as np
 import networkx as nx
 
+import solverutils as sutils
 from solverutils import CID
-
-
-class BoxOf:
-    """
-    When called, returns indicies of cells in the box of center. This is
-    different from ``fullsatsolver.boxof``.
-    """
-    def __init__(self, board_shape):
-        # use the same buffer to speed up
-        self.z = np.zeros(board_shape, dtype=np.bool_)
-
-    def __call__(self, center, radius=1, exclude_center=False):
-        self.z[max(0, center[0] - radius):center[0] + radius + 1,
-               max(0, center[1] - radius):center[1] + radius + 1] = True
-        if exclude_center:
-            self.z[center] = False
-        i = np.nonzero(self.z)
-        # make self.z back to zeros
-        self.z[i[0], i[1]] = False
-        return i
 
 
 class InvalidVirtualClickError(Exception):
@@ -43,7 +24,7 @@ class BoardDetector:
         self.key_board = key_board
         self.cur_board = np.empty(key_board.shape, dtype=int)
         self.cur_board.fill(CID['q'])
-        self.boxof = BoxOf(self.cur_board.shape)
+        self.iboxof = sutils.IBoxOf(self.cur_board.shape)
 
     @classmethod
     def new(cls, key_board):
@@ -54,10 +35,10 @@ class BoardDetector:
         board_graph.add_nodes_from(
             itertools.product(
                 range(key_board.shape[0]), range(key_board.shape[1])))
-        boxof = BoxOf(key_board.shape)
+        iboxof = sutils.IBoxOf(key_board.shape)
         for bxy in zip(*np.nonzero(key_board == 0)):
             board_graph.add_edges_from(
-                (bxy, p) for p in zip(*boxof(bxy, exclude_center=True)))
+                (bxy, p) for p in zip(*iboxof(bxy, exclude_center=True)))
         return cls(key_board, board_graph)
 
     # pylint: disable=no-self-use
@@ -83,7 +64,7 @@ class BoardDetector:
         elif self.cur_board[bloc] == 0:
             pass
         elif 1 <= self.cur_board[bloc] <= 8:
-            box_blocs = self.boxof(bloc)
+            box_blocs = self.iboxof(bloc)
             if np.sum(self.cur_board[box_blocs] == CID['f']) \
                     == self.cur_board[bloc] and \
                     np.any(self.cur_board[box_blocs] == CID['q']):

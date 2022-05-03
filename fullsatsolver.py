@@ -36,11 +36,6 @@ class NCKProblemEncoder:
         return C
 
 
-def boxof(array, center, radius=1):
-    return array[max(0, center[0] - radius):center[0] + radius + 1,
-                 max(0, center[1] - radius):center[1] + radius + 1]
-
-
 def encode_board(board: np.ndarray, mine_remains: int = None) \
         -> typing.Tuple[typing.List[int], Clauses]:
     logger = _l(encode_board.__name__)
@@ -50,7 +45,7 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     qvars_to_use = []
     if mine_remains is None:
         for x, y in zip(*np.nonzero(board == CID['q'])):
-            surr = boxof(board, (x, y))
+            surr = sutils.boxof(board, (x, y))
             if np.any((surr >= 1) & (surr <= 8)):
                 v = int(vartable[x, y])
                 qvars_to_use.append(v)
@@ -62,8 +57,8 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     pe = NCKProblemEncoder(len(qvars_to_use))
 
     for x, y in zip(*np.nonzero((board <= 8) & (board >= 1))):
-        surr = boxof(board, (x, y))
-        vsurr = boxof(vartable, (x, y))
+        surr = sutils.boxof(board, (x, y))
+        vsurr = sutils.boxof(vartable, (x, y))
         if np.any(surr == CID['q']):
             vars_ = sorted(vsurr[surr == CID['q']].tolist())
             vars__ = [qvar2vid[x] for x in vars_]
@@ -81,10 +76,6 @@ def encode_board(board: np.ndarray, mine_remains: int = None) \
     return qvars_to_use, clauses
 
 
-class NoSolutionError(Exception):
-    pass
-
-
 def attempt_full_solve(clauses, solver='minisat22', max_solutions=10000):
     logger = _l(attempt_full_solve.__name__)
     with SATSolver(name=solver, bootstrap_with=clauses) as s:
@@ -94,7 +85,7 @@ def attempt_full_solve(clauses, solver='minisat22', max_solutions=10000):
     #   are tightly surround the uncovered number cells, and the board cannot
     #   be encoded)
     if solutions in ([], [[]]):
-        raise NoSolutionError
+        raise sutils.NoSolutionError
     if len(solutions) == max_solutions + 1:
         logger.warning('TooManySolutionsError. '
                        'There\'s nothing to do about it')
@@ -201,7 +192,7 @@ def solve(board: np.ndarray,
         rand_bloc = guess(board, qidx_mine[:, :2], guess_edge_weight)
         logger.info('Choosing: bloc=%s, mine_under=0', rand_bloc)
         return np.concatenate((rand_bloc, [0]))[np.newaxis]
-    except NoSolutionError:
+    except sutils.NoSolutionError:
         logger.warning('NoSolutionError')
         logger.info('Falling back to random guess')
         # guess edges with more probability
