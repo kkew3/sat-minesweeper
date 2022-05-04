@@ -40,7 +40,7 @@ def make_parser():
     parser.add_argument(
         '-S',
         '--solver',
-        choices=['fullsatsolver', 'mcdfssolver'],
+        choices=['fullsatsolver', 'mcdfssolver', 'mcsatsolver'],
         default='fullsatsolver',
         help='the solver to use; default to %(default)s')
     return parser
