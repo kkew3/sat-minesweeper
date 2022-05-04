@@ -11,23 +11,14 @@ import virtual.vboard as vb
 import actionplanner as planner
 from virtual.actionplanner import MouseClicker
 import solverutils as sutils
+import mwagent
 
 # world champion's clicking speed, approximately
 pg.PAUSE = 0.05
 
 
-class GameWontBeginError(Exception):
-    def __init__(self):
-        super().__init__('game hasn\'t begun yet')
-
-
 def make_parser():
     parser = argparse.ArgumentParser(description='Virtual Minesweeper agent')
-    parser.add_argument(
-        'key_board',
-        metavar='KEY_BOARD_CSV',
-        help=('the board to play on; should be of the same format as '
-              'specified in solverutils'))
     parser.add_argument(
         '-D',
         dest='delay_before',
@@ -41,6 +32,18 @@ def make_parser():
         choices=['fullsatsolver', 'mcdfssolver', 'mcsatsolver'],
         default='fullsatsolver',
         help='the solver to use; default to %(default)s')
+    parser.add_argument(
+        'key_board',
+        metavar='KEY_BOARD_CSV',
+        help=('the board to play on; should be of the same format as '
+              'specified in solverutils'))
+    parser.add_argument(
+        'additional_kwargs',
+        metavar='KEY=VALUE',
+        nargs='*',
+        help=('additional keyword arguments to be passed to the solver; see '
+              'the solver\'s `solve` function\'s keyword arguments for '
+              'detail'))
     return parser
 
 
@@ -49,6 +52,9 @@ def main():
     logging.config.fileConfig('logging.ini')
     logger = logging.getLogger()
     solver = importlib.import_module(args.solver)
+    solver_kwargs = mwagent.parse_additional_kwargs(args.solver,
+                                                    args.additional_kwargs)
+    logger.info('Additional solver kwarge: %s', solver_kwargs)
 
     key_board, total_mines, first_bloc = sutils.read_board(args.key_board)
     if not first_bloc:
@@ -68,7 +74,7 @@ def main():
         stage = si.identify_stage(boardimg, board)
 
         if stage != 'ongoing':
-            raise GameWontBeginError
+            raise mwagent.GameWontBeginError
         tic = time.time()
         try:
             step = 0
@@ -84,7 +90,10 @@ def main():
                 else:
                     mine_remains = None
                 solutions = solver.solve(
-                    board, mine_remains, _first_bloc=first_bloc)
+                    board,
+                    mine_remains,
+                    _first_bloc=first_bloc,
+                    **solver_kwargs)
                 board = bfm.rewind_board()
                 pl.click_mines(board, solutions)
                 step += 1
@@ -97,7 +106,7 @@ def main():
             logger.info('Time used: %f seconds', toc - tic)
     except KeyboardInterrupt:
         pass
-    except GameWontBeginError:
+    except mwagent.GameWontBeginError:
         logger.exception('')
     except Exception:
         logger.exception('Unexpected exception')

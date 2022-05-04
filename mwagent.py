@@ -3,6 +3,7 @@ import time
 import logging
 import logging.config
 import importlib
+import inspect
 
 import numpy as np
 from PIL import Image
@@ -43,7 +44,37 @@ def make_parser():
         choices=['fullsatsolver', 'mcdfssolver', 'mcsatsolver'],
         default='fullsatsolver',
         help='the solver to use; default to %(default)s')
+    parser.add_argument(
+        'additional_kwargs',
+        metavar='KEY=VALUE',
+        nargs='*',
+        help=('additional keyword arguments to be passed to the solver; see '
+              'the solver\'s `solve` function\'s keyword arguments for '
+              'detail'))
     return parser
+
+
+def parse_additional_kwargs(solver: str, kvpairs: list):
+    logger = logging.getLogger(__name__ + '.parse_additional_kwargs')
+    solve_function = importlib.import_module(solver).solve
+    accepted_kwargs = {
+        p.name: p.annotation
+        for p in inspect.signature(solve_function).parameters.values()
+        if p.default is not inspect.Parameter.empty
+        and not p.name.startswith('_')
+    }
+    if any(a is inspect.Parameter.empty for a in accepted_kwargs.values()):
+        raise ValueError(
+            'the solve function of `{}` misses type annotation '
+            'in one of its public keyword arguments'.format(solver))
+    parsed_kwargs = {}
+    for kvpair in kvpairs:
+        k, _, v = kvpair.partition('=')
+        if k not in accepted_kwargs:
+            logger.warning('Additional kwarg %s is not accepted; skipped', k)
+            continue
+        parsed_kwargs.update({k: accepted_kwargs[k](v)})
+    return parsed_kwargs
 
 
 # Deprecated. This function does not adapt to the new interface of
@@ -67,6 +98,9 @@ def main():
     logging.config.fileConfig('logging.ini')
     logger = logging.getLogger()
     solver = importlib.import_module(args.solver)
+    solver_kwargs = parse_additional_kwargs(args.solver,
+                                            args.additional_kwargs)
+    logger.info('Additional solver kwarge: %s', solver_kwargs)
 
     with mss.mss() as sct:
         scr = np.array(make_screenshot(sct).convert('L'))
@@ -99,7 +133,8 @@ def main():
                         logger.info('# Mine remains: %d', mine_remains)
                     else:
                         mine_remains = None
-                    solutions = solver.solve(board, mine_remains)
+                    solutions = solver.solve(board, mine_remains,
+                                             **solver_kwargs)
                     board = bfm.rewind_board()
                     pl.click_mines(board, solutions)
                     step += 1
