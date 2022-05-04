@@ -165,7 +165,7 @@ def solve(board: np.ndarray,
             logger.debug('There exists confidences == 1; use them')
             return qidx_mine[np.nonzero(confidence > uscore)]
         if not np.allclose(np.max(confidence), 0.0):
-            logger.debug('There exists no confidence == 0; use max confidence')
+            logger.info('There exists no confidence == 0; use max confidence')
             return qidx_mine[np.argmax(confidence)][np.newaxis]
         # confidence == [0.0, 0.0, ...], mines should be [False, False, ...]
         assert not np.any(qidx_mine[:, 2]), qidx_mine
