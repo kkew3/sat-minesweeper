@@ -91,7 +91,7 @@ I take into account the number of mines remaining as soon as it's no longer intr
 
 The core mechanism is to convert current MineSweeper board into a set of problems.
 For example: c\_i1, c\_i2, ... c\_im have in total k mines.
-Then I brute-force search all possible solutions in the set of problems.
+Then I brute-force search (with pruning) all possible solutions in the set of problems.
 However, when there are many problems, it becomes intractable to search all possibilities.
 Therefore, I recursively bipartition the set of problems into smaller sets until the result set becomes tractable.
 I bipartition using [global Min-cut algorithm](https://stanford.edu/~rezab/classes/cme305/W14/Notes/4.pdf), using problems as nodes and Jaccard similarity between problems as edge capacity.
