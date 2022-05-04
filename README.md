@@ -6,7 +6,7 @@
 
 ## Introduction
 
-This is a SAT-based MineSweeper solver.
+This is an SAT-based MineSweeper solver.
 It interactively plays online MineSweeper game provided by [freeminesweeper.org](https://freeminesweeper.org) through usual human-computer interface.
 It detects the board by sliding window template matching and uncover the mines by simulating left/right mouse clicks.
 It can play on all configuration of boards (height, width, number of mines).
@@ -54,11 +54,12 @@ Enjoy watching it playing!
 ### One-step solution
 
 Perform a one-step solution given a board.
-Find example boards in [example\_boards](example_boards).
+Find example boards in [example\_boards](example_boards) (but not in `example_boards/key`).
 
 ```bash
 python -m fullsatsolver example_boards/2.csv
 #python -m mcdfssolver example_boards/2.csv
+#python -m mcsatsolver example_boards/2.csv
 ```
 
 ### Virtual game
@@ -80,7 +81,7 @@ The virtual games can be used to compare which solver is faster on which type of
 ### `fullsatsolver`
 
 The core mechanism is to convert current MineSweeper board into a CNF, and resort to [MiniSAT](http://minisat.se/), a fast SAT solver, to get the solution.
-Due to lack of assumptions (e.g. certain key cells haven't been uncovered yet), it often occurs that a number of possible solutions are returned (up to 3000).
+Due to lack of assumptions (e.g. certain key cells haven't been uncovered yet), it often occurs that a number of possible solutions are returned (up to 10000).
 To disambiguate, I find the symbol that maintain its set/clear state the most throughout all solutions.
 If that symbol is always set or always cleared, a.k.a. having mine underneath or otherwise, then it's definitely that state.
 If that symbol is mostly one state but sometimes the other, then the former state is a better guess.
@@ -101,7 +102,7 @@ In practice (I tried up to `40x80` board), `mcdfssolver` is 2x to 8x faster than
 
 This is a combination of the above two solvers.
 It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
-In general, this solver is the fastest if the board is large enough.
+In general, this solver is the fastest, especially if the board is large enough.
 
 ## Aggressive guessing
 
