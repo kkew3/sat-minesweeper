@@ -16,11 +16,18 @@ class InvalidVirtualClickError(Exception):
     pass
 
 
+def ensure_key_board(key_board):
+    if np.any((key_board == CID['f']) | (key_board == CID['q'])):
+        raise ValueError('this is not a key board: ' + str(key_board))
+    for xy in zip(*np.nonzero(key_board <= 8)):
+        if np.sum(sutils.boxof(key_board, xy) == CID['m']) != key_board[xy]:
+            raise ValueError('this is not a key board: ' + str(key_board))
+
+
 class BoardDetector:
     def __init__(self, key_board, board_graph):
         self.board_graph = board_graph
-        if np.any((key_board == CID['f']) | (key_board == CID['q'])):
-            raise ValueError('this is not a key board: ' + str(key_board))
+        ensure_key_board(key_board)
         self.key_board = key_board
         self.cur_board = np.empty(key_board.shape, dtype=int)
         self.cur_board.fill(CID['q'])
