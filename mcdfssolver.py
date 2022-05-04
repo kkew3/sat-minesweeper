@@ -17,7 +17,7 @@ import guess
 import solverutils as sutils
 from solverutils import CID
 
-MAX_VARS = 24
+DEFAULT_MAX_VARS = 24
 MAX_ITER = 2**24  # takes approximately 1 second
 
 NCKProblem = collections.namedtuple('NCKProblem', 'vars k')
@@ -142,28 +142,29 @@ def get_vars(problems):
     return functools.reduce(operator.or_, (set(p.vars) for p in problems))
 
 
-def solve_problems_graph(graph, solutions, confidences) -> None:
+def solve_problems_graph(graph, solutions, confidences, max_vars) -> None:
     """
     :param graph: the problem graph
     :param solutions: dict to put solutions in
     :param confidences: dict to put confidences in
+    :param max_vars: till when to stop partitioning problems
     """
     logger = logging.getLogger(__name__ + '.solve_problems_graph')
     workingq = list(map(graph.subgraph, nx.connected_components(graph)))
     while workingq:
         top_graph = workingq.pop()
         n_vars = len(get_vars(top_graph.nodes))
-        if n_vars > MAX_VARS and len(top_graph) >= 2:
+        if n_vars > max_vars and len(top_graph) >= 2:
             logger.warning(
                 'Performing Min-cut bisection due to '
-                'exceeding n_vars limit (%d > %d)', n_vars, MAX_VARS)
+                'exceeding n_vars limit (%d > %d)', n_vars, max_vars)
             workingq.extend(map(graph.subgraph, mincut_bisect(top_graph)))
         else:
-            if n_vars > MAX_VARS:
+            if n_vars > max_vars:
                 logger.warning(
                     'Exceeding n_vars limit (%d > %d) but top_graph'
                     ' has only %d node left; stopped bisection', n_vars,
-                    MAX_VARS, len(top_graph))
+                    max_vars, len(top_graph))
             # top_graph.nodes, i.e. a set of problems.
             # top_graph can't be an empty graph, as mincut_bisect won't output
             # empty graph.
@@ -248,7 +249,7 @@ def dfs_solve_problems(problems, max_solutions=10000):
     return solutions, confidence
 
 
-def solve_board(board, mines_remain: int = None):
+def solve_board(board, mines_remain: int, max_vars: int):
     logger = logging.getLogger(__name__ + '.solve_board')
     problems, mproblem = encode_board(board, mines_remain)
     logger.debug('Encoded board: %s; %s', problems, mproblem)
@@ -263,7 +264,7 @@ def solve_board(board, mines_remain: int = None):
     pgraph = make_problem_graph(problems, mproblem)
     if not pgraph and not solutions:
         raise sutils.NoSolutionError
-    solve_problems_graph(pgraph, solutions, confidences)
+    solve_problems_graph(pgraph, solutions, confidences, max_vars)
     logger.debug('Graph solve complete with solutions: %s; confidences: %s',
                  solutions, confidences)
     if not solutions:
@@ -280,6 +281,7 @@ def solve(board,
           mines_remain: int = None,
           consider_mines_th: int = 5,
           guess_edge_weight: float = 2.0,
+          max_vars: int = DEFAULT_MAX_VARS,
           _first_bloc=None):
     logger = logging.getLogger(__name__ + '.solve')
     if np.all(board == CID['q']):
@@ -296,14 +298,14 @@ def solve(board,
 
     try:
         logger.info('Performing Min-cut DFS inference')
-        qidx_mine, confidences = solve_board(board, None)
+        qidx_mine, confidences = solve_board(board, None, max_vars)
         uscore = 1.0 - 1e-6
         if np.max(confidences) <= uscore and mines_remain is not None \
                 and mines_remain <= consider_mines_th \
-                and np.sum(board == CID['q']) <= MAX_VARS:
+                and np.sum(board == CID['q']) <= max_vars:
             logger.info('No confident decision. Rerunning inference using '
                         'mines_remain')
-            qidx_mine, confidences = solve_board(board, mines_remain)
+            qidx_mine, confidences = solve_board(board, mines_remain, max_vars)
         if np.max(confidences) > uscore:
             logger.debug('There exists confidences == 1; use them')
             return qidx_mine[np.nonzero(confidences > uscore)]
