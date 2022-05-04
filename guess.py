@@ -54,6 +54,7 @@ def prefer_empty(board: np.ndarray, all_blocs: np.ndarray):
     weights = np.min(
         scipy.spatial.distance.cdist(all_blocs, dangerous_blocs, 'chebyshev'),
         axis=1) + 1
-    weights = np.sum(weights)
+    weights = np.power(1.8, weights)
+    weights = weights / np.sum(weights)
     rand_bloc = all_blocs[np.random.choice(all_blocs.shape[0], p=weights)]
     return rand_bloc
