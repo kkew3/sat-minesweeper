@@ -103,13 +103,29 @@ This is a combination of the above two solvers.
 It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
 In general, this solver is the fastest if the board is large enough.
 
+## Aggressive guessing
+
+This function is by default turned off.
+Aggressive guessing makes weighted random guess on empty cells if the mine density is small enough.
+It sacrifices the probability to win for shorter time.
+To enable this function, specify the total number of mines in a board, and adjust its two parameters off their default values.
+For example,
+
+```bash
+python -m mwagent -D5 -m99 -Smcsatsolver \
+    aggressive_guess_max_mine_density=0.22 \
+    aggressive_guess_min_empty_density=0.75
+```
+
+Aggressive guessing in general will slow down `fullsatsolver`, but will not for partitioning-based algorithms like `mcsatsolver`.
+
 ## Statistical comparison of the solvers
 
 See [statcmp.md](runs/statcmp.md).
 
 ## Future works
 
-- Even faster first few steps random guess
+None for now.
 
 ## More about Minesweeper
 
