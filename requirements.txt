@@ -16,3 +16,7 @@ mss
 jupyter
 line_profiler[ipython]
 graphviz
+
+# presentation purpose
+pandas
+tabulate

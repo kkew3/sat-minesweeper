@@ -103,6 +103,10 @@ This is a combination of the above two solvers.
 It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
 In general, this solver is the fastest if the board is large enough.
 
+## Statistical comparison of the solvers
+
+See [statcmp.md](runs/statcmp.md).
+
 ## Future works
 
 - Even faster first few steps random guess
