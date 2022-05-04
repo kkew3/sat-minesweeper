@@ -38,7 +38,7 @@ class BoardDetector:
         """
         :param key_board: the board with all cells uncovered
         """
-        board_graph = nx.Graph()
+        board_graph = nx.DiGraph()
         board_graph.add_nodes_from(
             itertools.product(
                 range(key_board.shape[0]), range(key_board.shape[1])))
