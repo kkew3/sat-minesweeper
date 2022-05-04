@@ -123,6 +123,8 @@ def solve(board: np.ndarray,
           mines_remain,
           consider_mines_th: int = 5,
           guess_edge_weight: float = 2.0,
+          aggressive_guess_max_mine_density: float = 0.0,
+          aggressive_guess_min_empty_density: float = 1.0,
           _first_bloc=None):
     """
     Solve the board.
@@ -138,6 +140,12 @@ def solve(board: np.ndarray,
            edge cells this weight to perform a weighted guess. Generally
            this weight should be larger than 1.0. This strategy comes from
            the Guessing section of http://www.minesweeper.info/wiki/Strategy
+    :param aggressive_guess_max_mine_density: keep random guess until the
+           mine density among empty cells is greater than this value. Disabled
+           if `mines_remain` is None
+    :param aggressive_guess_min_empty_density: keep random guess until the
+           empty cell density among all cells is smaller than this value.
+           Disabled if `mines_remain` is None
     """
     logger = _l(solve.__name__)
     if np.all(board == CID['q']):
@@ -151,6 +159,22 @@ def solve(board: np.ndarray,
     if np.all(board != CID['q']):
         logger.warning('No uncovered cells found. Why isn\'t the game ended?')
         return np.array([])
+    if mines_remain is not None:
+        logger.debug('Trying aggressive guessing')
+        mine_density = mines_remain / np.sum(board == CID['q'])
+        empty_density = np.sum(board == CID['q']) / board.size
+        logger.debug('Mine density=%f, threshold=%f', mine_density,
+                     aggressive_guess_max_mine_density)
+        logger.debug('Empty density=%f, threshold=%f', empty_density,
+                     aggressive_guess_min_empty_density)
+        if mine_density <= aggressive_guess_max_mine_density \
+               and empty_density >= aggressive_guess_min_empty_density:
+            logger.info('Using aggresive guessing')
+            all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
+            rand_bloc = guess.prefer_empty(board, all_blocs)
+            logger.info('Choosing bloc=%s', rand_bloc)
+            return np.concatenate((rand_bloc, [0]))[np.newaxis]
+        logger.debug('Aggressive guessing skipped')
 
     try:
         logger.info('Performing SAT inference')

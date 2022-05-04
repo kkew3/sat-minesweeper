@@ -119,6 +119,8 @@ def solve(board,
           consider_mines_th: int = 5,
           guess_edge_weight: float = 2.0,
           max_vars: int = DEFAULT_MAX_VARS,
+          aggressive_guess_max_mine_density: float = 0.0,
+          aggressive_guess_min_empty_density: float = 1.0,
           _first_bloc=None):
     logger = logging.getLogger(__name__ + '.solve')
     if np.all(board == CID['q']):
@@ -132,6 +134,22 @@ def solve(board,
     if np.all(board != CID['q']):
         logger.warning('No uncovered cells found. Why isn\'t the game ended?')
         return np.array([])
+    if mines_remain is not None:
+        logger.debug('Trying aggressive guessing')
+        mine_density = mines_remain / np.sum(board == CID['q'])
+        empty_density = np.sum(board == CID['q']) / board.size
+        logger.debug('Mine density=%f, threshold=%f', mine_density,
+                     aggressive_guess_max_mine_density)
+        logger.debug('Empty density=%f, threshold=%f', empty_density,
+                     aggressive_guess_min_empty_density)
+        if mine_density <= aggressive_guess_max_mine_density \
+               and empty_density >= aggressive_guess_min_empty_density:
+            logger.info('Using aggresive guessing')
+            all_blocs = np.stack(np.nonzero(board == CID['q']), axis=1)
+            rand_bloc = guess.prefer_empty(board, all_blocs)
+            logger.info('Choosing bloc=%s', rand_bloc)
+            return np.concatenate((rand_bloc, [0]))[np.newaxis]
+        logger.debug('Aggressive guessing skipped')
 
     try:
         logger.info('Performing Min-cut SAT inference')
