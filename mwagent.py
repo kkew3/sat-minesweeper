@@ -15,7 +15,7 @@ import actionplanner as planner
 import solverutils as sutils
 
 # world champion's clicking speed, approximately
-pg.PAUSE = 0.05
+pg.PAUSE = 0.07
 
 
 class GameWontBeginError(Exception):
