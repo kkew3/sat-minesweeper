@@ -278,7 +278,7 @@ def solve_board(board, mines_remain: int, max_vars: int):
 
 
 def solve(board,
-          mines_remain: int = None,
+          mines_remain,
           consider_mines_th: int = 5,
           guess_edge_weight: float = 2.0,
           max_vars: int = DEFAULT_MAX_VARS,

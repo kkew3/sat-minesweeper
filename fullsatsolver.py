@@ -120,7 +120,7 @@ def solve_board(board: np.ndarray, mines_remain: int = None):
 
 
 def solve(board: np.ndarray,
-          mines_remain: int = None,
+          mines_remain,
           consider_mines_th: int = 5,
           guess_edge_weight: float = 2.0,
           _first_bloc=None):
