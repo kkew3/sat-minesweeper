@@ -97,12 +97,15 @@ Therefore, I recursively bipartition the set of problems into smaller sets until
 I bipartition using [global Min-cut algorithm](https://stanford.edu/~rezab/classes/cme305/W14/Notes/4.pdf), using problems as nodes and Jaccard similarity between problems as edge capacity.
 In practice (I tried up to `40x80` board), `mcdfssolver` is 2x to 8x faster than `fullsatsolver`, and I haven't found any inconsistency between their results.
 
-<!-- TODO introducing other solvers -->
+### `mcsatsolver`
+
+This is a combination of the above two solvers.
+It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
+In general, this solver is the fastest if the board is large enough.
 
 ## Future works
 
-- Other solvers: e.g. I'm thinking about using global Min-cut and SAT to solve board.
-  I may remove this entry in the future if the idea is found not possible or intractable for me.
+- Even faster first few steps random guess
 
 ## More about Minesweeper
 
