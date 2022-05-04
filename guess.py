@@ -26,6 +26,5 @@ def prefer_edge(board: np.ndarray, all_blocs: np.ndarray,
                | (all_blocs[:, 1] == board.shape[1] - 1))
     weights = np.where(on_edge, guess_edge_weight, 1.0)
     weights = weights / np.sum(weights)
-    rand_bloc = all_blocs[np.random.choice(
-        np.arange(all_blocs.shape[0]), p=weights)]
+    rand_bloc = all_blocs[np.random.choice(all_blocs.shape[0], p=weights)]
     return rand_bloc
