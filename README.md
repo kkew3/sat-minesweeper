@@ -104,6 +104,13 @@ This is a combination of the above two solvers.
 It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
 In general, this solver is the fastest, especially if the board is large enough.
 
+## Chord
+
+I use chording to speed up uncovering tiles.
+Since finding the optimal chording strategy is exponential time complexity (I didn't find better one), a greedy algorithm is used.
+It's too long to explain it here.
+If you want to know more, read the code [`actionplanner.py`](./actionplanner.py).
+
 ## Aggressive guessing
 
 This function is by default turned off.
