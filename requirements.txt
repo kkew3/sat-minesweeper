@@ -1,13 +1,12 @@
 numpy
 scipy
 Pillow
-pylint
-pytest
-matplotlib
 networkx
 opencv-python
 pyautogui
+#   required only under macOS
 pyobjc-core
+#   required only under macOS
 pyobjc
 python-sat
 mss
@@ -16,6 +15,9 @@ mss
 jupyter
 line_profiler[ipython]
 graphviz
+matplotlib
+pylint
+pytest
 
 # presentation purpose
 pandas
