@@ -164,6 +164,7 @@ See [statcmp.md](runs/statcmp.md).
 
 - Add debug mode where screenshots with markup of each click are saved to a specified folder
 - Make the mouse clicking action natural to human
+- Hierarchical definition of solvers, action planners, etc.
 
 ## More about Minesweeper
 
