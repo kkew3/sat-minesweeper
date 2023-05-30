@@ -47,7 +47,7 @@ def loadimg(filename: str, bw=False):
     :return: a uint8 image
     """
     filename = os.path.join(IMGDIR, filename)
-    img = np.array(Image.open(filename).convert('L'))
+    img = np.asarray(Image.open(filename).convert('L'))
     if bw:
         img = tobw(img)
     return img
@@ -348,11 +348,11 @@ class BoardDetector:
         this ``BoardDetector``; otherwise, returns
         ``(cell_board_image, None)``.
         """
-        boardimg = np.array(
+        boardimg = np.asarray(
             make_screenshot(sct, self.board_region).convert('L'))
         if self.upper_mr is None:
             return boardimg, None
-        mrimg = np.array(make_screenshot(sct, self.mr_region).convert('L'))
+        mrimg = np.asarray(make_screenshot(sct, self.mr_region).convert('L'))
         return boardimg, mrimg
 
     def get_cells_from_board(self, boardimg):
@@ -467,9 +467,9 @@ def _main():
 
     with mss.mss() as sct:
         if not args.empty_board:
-            empty_board = np.array(make_screenshot(sct).convert('L'))
+            empty_board = np.asarray(make_screenshot(sct).convert('L'))
         else:
-            empty_board = np.array(Image.open(args.empty_board).convert('L'))
+            empty_board = np.asarray(Image.open(args.empty_board).convert('L'))
         bd = BoardDetector.new(empty_board, args.mr_tofile or args.mrnum)
         boardimg, mrimg = bd.localize_board_and_mr(sct)
     if args.board_tofile:

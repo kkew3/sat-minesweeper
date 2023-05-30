@@ -103,7 +103,7 @@ def main():
     logger.info('Additional solver kwarge: %s', solver_kwargs)
 
     with mss.mss() as sct:
-        scr = np.array(make_screenshot(sct).convert('L'))
+        scr = np.asarray(make_screenshot(sct).convert('L'))
         bd = vb.BoardDetector.new(scr)
         pl = planner.GreedyChordActionPlanner(0.0, bd, sct)
         si = vb.StageIdentifier()
