@@ -304,7 +304,7 @@ class GreedyChordActionPlanner(ActionPlanner):
         :param delay_after: ...
         :param bdetector: ...
         :param sct: if provided, should be the ``mss.mss()`` object used to
-                    provide instant feedback during ``click_mines``
+               provide instant feedback during ``click_mines``
         """
         super().__init__(delay_after, bdetector, mc)
         self.all_mines_ever_found = set()
@@ -312,26 +312,32 @@ class GreedyChordActionPlanner(ActionPlanner):
         self.sct = sct
 
     def expand_partial_solutions(self, qidx_mine):
+        """
+        Expand the solution so that it contains both cell positions without
+        mine underneath and cell positions having been flagged, and keep the
+        solution partial so that it does not contain other cell positions.
+
+        :param qidx_mine: the solution
+        :return: the expanded partial solution the same form as ``qidx_mine``
+        """
         no_mines = qidx_mine[qidx_mine[:, 2] == 0]
         inferred_mines = set(map(tuple, qidx_mine[qidx_mine[:, 2] == 1, :2]))
         self.all_mines_ever_found |= inferred_mines
         mines_not_flagged = self.all_mines_ever_found - self.mines_flagged
         if mines_not_flagged and no_mines.shape[0]:
             mines_not_flagged = np.asarray(list(mines_not_flagged))
-            mines_not_flagged = np.concatenate([
+            mines_not_flagged = np.append(
                 mines_not_flagged,
-                np.ones((mines_not_flagged.shape[0], 1), dtype=int)
-            ],
-                                               axis=1)
+                np.ones((mines_not_flagged.shape[0], 1), dtype=int),
+                axis=1)
             expanded_qidx_mine = np.concatenate([no_mines, mines_not_flagged],
                                                 axis=0)
         elif mines_not_flagged:
             mines_not_flagged = np.asarray(list(mines_not_flagged))
-            mines_not_flagged = np.concatenate([
+            mines_not_flagged = np.append(
                 mines_not_flagged,
-                np.ones((mines_not_flagged.shape[0], 1), dtype=int)
-            ],
-                                               axis=1)
+                np.ones((mines_not_flagged.shape[0], 1), dtype=int),
+                axis=1)
             expanded_qidx_mine = mines_not_flagged
         else:
             # it's impossible that both no_mines and mines_not_flagged are
@@ -356,7 +362,7 @@ class GreedyChordActionPlanner(ActionPlanner):
             left_blocs = left_clicks[:, 0], left_clicks[:, 1]
             board, _, _ = self.bd.recognize_board_and_mr(self.sct)
             values = board[left_clicks[:, 0], left_clicks[:, 1]]
-            values_diff = np.zeros(left_clicks.shape[0], dtype=np.bool_)
+            values_diff = np.zeros(left_clicks.shape[0], dtype=bool)
             for i, pxy in enumerate(
                     zip(*self.bd.boardloc_as_pixelloc(left_blocs))):
                 if self.sct:

@@ -39,7 +39,7 @@ class IBoxOf:
     """
     def __init__(self, board_shape):
         # use the same buffer to speed up
-        self.z = np.zeros(board_shape, dtype=np.bool_)
+        self.z = np.zeros(board_shape, dtype=bool)
 
     def __call__(self, center, radius=1, exclude_center=False):
         self.z[max(0, center[0] - radius):center[0] + radius + 1,
