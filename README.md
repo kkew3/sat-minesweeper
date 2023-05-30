@@ -76,6 +76,36 @@ See more help by `python -m virtual.mwagent --help`.
 
 The virtual games can be used to compare which solver is faster on which type of board.
 
+## What if error occurs?
+
+If in the error message,
+
+- `vboard.BoardNotFoundError` appears:
+  it means that the game board cannot be localized
+- `AssertionError: pyautogui supports only the primary monitor` appears:
+  it means the game board is not placed in the primary monitor
+- `GameWontBeginError` appears:
+  it means the program attempts to click somewhere but the screen does not change
+
+But since there's no deep learning or the like in the user interface handler code, it's very brittle.
+The above-mentioned error messages are likely to occur in otherwise circumstances as well.
+
+There are a number of possible causes and solutions:
+
+- the user interface of freeminesweeper.org changes:
+  although I check and update the code handling the user interface from time to time, still it sometimes occurs;
+  please wait for the next update or play with various parameters in `vboard.py`
+- you are using the Retina display of Mac computers:
+  try scaling your monitor up or down before issuing the running command again;
+- the browser containing the game interface is not placed in the primary monitor:
+  just move it to the primary monitor
+- the browser containing the game interface is not in the front:
+  just put it to the front
+- there are background windows containing distractive contents:
+  try closing as many background windows as possible
+
+There may also be unlisted causes.
+
 ## Mechanism
 
 ### `fullsatsolver`
@@ -104,7 +134,7 @@ This is a combination of the above two solvers.
 It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
 In general, this solver is the fastest, especially if the board is large enough.
 
-## Chord
+## Chording
 
 I use chording to speed up uncovering tiles.
 Since finding the optimal chording strategy is exponential time complexity (I didn't find better one), a greedy algorithm is used.
