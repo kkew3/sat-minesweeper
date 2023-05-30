@@ -46,6 +46,8 @@ python -m mwagent
 #python -m mwagent -Smcdfssolver
 ```
 
+Then click and activate the web browser window containing the board.
+
 Again, be sure not to overlap the Terminal window with the board.
 Wait 10 seconds the computer will play on its own.
 
@@ -99,6 +101,7 @@ There are a number of possible causes and solutions:
   just put it to the front
 - there are background windows containing distractive contents:
   try closing as many background windows as possible
+- you forget to activate the browser window before the program makes its first click
 
 There may also be unlisted causes.
 
