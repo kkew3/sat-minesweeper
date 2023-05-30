@@ -506,22 +506,11 @@ def _main():
         help='if specified, the mine remaining image will be '
         'saved to FILE')
     parser.add_argument(
-        '-B',
-        action='store_true',
-        dest='boardcsv',
-        help='if specified, the board CSV will be printed to screen')
-    parser.add_argument(
         '-C',
         type=os.path.normpath,
         dest='cellnpy_tofile',
         metavar='FILE',
         help='if specified, the cell images are zipped in an npy FILE')
-    parser.add_argument(
-        '-M',
-        action='store_true',
-        dest='mrnum',
-        help='if specified, the mine remaining number will '
-        'be printed on screen')
     args = parser.parse_args()
 
     with mss.mss() as sct:
@@ -541,20 +530,23 @@ def _main():
                     np.asarray(Image.open(args.empty_board).convert('L')),
                 ),
             ]
-        bd = BoardDetector.new(empty_board, args.mr_tofile or args.mrnum)
+        bd = BoardDetector.new(empty_board, True)
         boardimg, mrimg = bd.localize_board_and_mr(sct)
     if args.board_tofile:
         Image.fromarray(boardimg).save(args.board_tofile)
     if args.mr_tofile:
         Image.fromarray(mrimg).save(args.mr_tofile)
-    if args.empty_board is not None and args.boardcsv:
-        np.savetxt(
-            sys.stdout,
-            bd.recognize_cells(bd.get_cells_from_board(boardimg)),
-            fmt='%d',
-            delimiter=',')
-    if args.mrnum:
-        print(bd.recognize_mr_digits(mrimg))
+    print('The board:')
+    board = bd.recognize_cells(bd.get_cells_from_board(boardimg))
+    np.savetxt(
+        sys.stdout,
+        board,
+        fmt='%d',
+        delimiter=',')
+    print('Mines remaining:')
+    print(bd.recognize_mr_digits(mrimg))
+    print('Winning state:')
+    print(StageIdentifier().identify_stage(boardimg, board))
     if args.cellnpy_tofile:
         np.save(args.cellnpy_tofile, bd.get_cells_from_board(boardimg))
     print(bd)
