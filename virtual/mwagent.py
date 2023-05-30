@@ -7,7 +7,7 @@ import importlib
 import numpy as np
 import pyautogui as pg
 
-import virtual.vboard as vb
+from virtual import vboard as vb
 import actionplanner as planner
 from virtual.actionplanner import MouseClicker
 import solverutils as sutils
@@ -61,7 +61,7 @@ def main():
         raise ValueError('first_bloc not specified in KEY_BOARD_CSV')
 
     bd = vb.BoardDetector.new(key_board)
-    pl = planner.GreedyChordActionPlanner(0.0, bd, None, _mc=MouseClicker(bd))
+    pl = planner.GreedyChordActionPlanner(0.0, bd, MouseClicker(bd), None)
     si = vb.StageIdentifier(key_board)
 
     logger.info('Process begun')
