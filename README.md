@@ -82,8 +82,6 @@ If in the error message,
 
 - `vboard.BoardNotFoundError` appears:
   it means that the game board cannot be localized
-- `AssertionError: pyautogui supports only the primary monitor` appears:
-  it means the game board is not placed in the primary monitor
 - `GameWontBeginError` appears:
   it means the program attempts to click somewhere but the screen does not change
 
@@ -97,9 +95,7 @@ There are a number of possible causes and solutions:
   please wait for the next update or play with various parameters in `vboard.py`
 - you are using the Retina display of Mac computers:
   try scaling your monitor up or down before issuing the running command again;
-- the browser containing the game interface is not placed in the primary monitor:
-  just move it to the primary monitor
-- the browser containing the game interface is not in the front:
+- the browser containing the game interface is occluded by other windows
   just put it to the front
 - there are background windows containing distractive contents:
   try closing as many background windows as possible

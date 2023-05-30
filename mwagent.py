@@ -96,7 +96,6 @@ def main():
                 for i in range(1, len(sct.monitors))]
         # leave `enable_mr_detect` False intentionally
         bd = vb.BoardDetector.new(scrs)
-        assert bd.mon_id == 1, 'pyautogui supports only the primary monitor'
         mc = planner.MouseClicker(sct.monitors[bd.mon_id], bd.dpr)
         pl = planner.GreedyChordActionPlanner(0.0, bd, mc, sct)
         si = vb.StageIdentifier()
