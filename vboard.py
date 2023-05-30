@@ -78,9 +78,10 @@ def make_screenshot(sct, monitor=None, region=None):
     elif not monitor:
         monitor = sct.monitors[1]
     if region:
-        region['top'] += monitor['top']
-        region['left'] += monitor['left']
-        img = sct.grab(region)
+        adjusted_region = region.copy()
+        adjusted_region['top'] += monitor['top']
+        adjusted_region['left'] += monitor['left']
+        img = sct.grab(adjusted_region)
     else:
         img = sct.grab(monitor)
     img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
