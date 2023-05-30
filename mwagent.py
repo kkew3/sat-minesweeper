@@ -77,20 +77,9 @@ def parse_additional_kwargs(solver: str, kvpairs: list):
     return parsed_kwargs
 
 
-# Deprecated. This function does not adapt to the new interface of
-# minesweeper.org
-#def identify_stage(scr, board):
-#    if np.sum(board == sutils.CID['m']) > 0:
-#        return 'lost'
-#    if np.sum(board == sutils.CID['q']) == 0:
-#        return 'win'
-#    return 'ongoing'
-
-
-def make_screenshot(sct):
-    img = sct.grab(sct.monitors[1])
-    img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
-    return img
+def get_mon_resolution(sct, mon_id):
+    mon = sct.monitors[mon_id]
+    return mon['width'], mon['height']
 
 
 def main():
@@ -103,9 +92,13 @@ def main():
     logger.info('Additional solver kwarge: %s', solver_kwargs)
 
     with mss.mss() as sct:
-        scr = np.asarray(make_screenshot(sct).convert('L'))
-        bd = vb.BoardDetector.new(scr)
-        pl = planner.GreedyChordActionPlanner(0.0, bd, sct)
+        scrs = [(i, get_mon_resolution(sct, i), vb.make_screenshot(sct, i))
+                for i in range(1, len(sct.monitors))]
+        # leave `enable_mr_detect` False intentionally
+        bd = vb.BoardDetector.new(scrs)
+        assert bd.mon_id == 1, 'pyautogui supports only the primary monitor'
+        mc = planner.MouseClicker(sct.monitors[bd.mon_id], bd.dpr)
+        pl = planner.GreedyChordActionPlanner(0.0, bd, mc, sct)
         si = vb.StageIdentifier()
 
         logger.info('Process begun')
