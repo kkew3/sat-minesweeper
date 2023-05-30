@@ -133,7 +133,9 @@ See [statcmp.md](runs/statcmp.md).
 
 ## Future works
 
-None for now.
+- Support multiple screens
+- Enhance the robustness of the user interface interaction by, e.g., taking different resolution into account
+- Add debug mode where screenshots with markup of each click are saved to a specified folder
 
 ## More about Minesweeper
 
