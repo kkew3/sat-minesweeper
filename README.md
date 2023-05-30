@@ -94,7 +94,7 @@ There are a number of possible causes and solutions:
   although I check and update the code handling the user interface from time to time, still it sometimes occurs;
   please wait for the next update or play with various parameters in `vboard.py`
 - you are using the Retina display of Mac computers:
-  try scaling your monitor up or down before issuing the running command again;
+  try scaling your browser up or down before issuing the running command again;
 - the browser containing the game interface is occluded by other windows
   just put it to the front
 - there are background windows containing distractive contents:
@@ -127,7 +127,7 @@ In practice (I tried up to `40x80` board), `mcdfssolver` is 2x to 8x faster than
 ### `mcsatsolver`
 
 This is a combination of the above two solvers.
-It first partition the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
+It first partitions the problem into subproblems using global Min-cut, and then solve each subproblem using standard SAT solver.
 In general, this solver is the fastest, especially if the board is large enough.
 
 ## Chording
