@@ -13,6 +13,8 @@ from solverutils import CID
 
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
+# related to open cell recognition
+OPEN_THR = 153  # the brightness between digit (122) and background (188)
 # related to remaining mines digit recognition
 MR_LOOKUPTABLE = np.array([
     [1, 0, 1, 1, 0, 1, 1, 1, 1, 1],
@@ -34,22 +36,19 @@ def normalize(image):
     return (image.astype(np.float64) - 128) / 128
 
 
-def tobw(img, threshold=128):
+def tobw(img, threshold):
     return ((img.astype(np.int64) >= threshold) * 255).astype(np.uint8)
 
 
-def loadimg(filename: str, bw=False):
+def loadimg(filename: str):
     """
-    Load image (optionally as 1-bit black & white image) from ``IMGDIR``.
+    Load image as grayscale from ``IMGDIR``.
 
     :param filename: the image filename
-    :param bw: if ``True``, threshold the image to 1-bit black and white
     :return: a uint8 image
     """
     filename = os.path.join(IMGDIR, filename)
     img = np.asarray(Image.open(filename).convert('L'))
-    if bw:
-        img = tobw(img)
     return img
 
 
@@ -60,12 +59,30 @@ def get_rect_midpoint(top_left, shape):
     ])
 
 
-def make_screenshot(sct, monitor=None):
-    if not monitor:
+def make_screenshot(sct, monitor=None, region=None):
+    """
+    Make uint8 grayscale screenshot of specified region on specified monitor.
+
+    :param sct: the ``mss.mss()`` instance
+    :param monitor: ``None`` for the first monitor, positive integer for the
+           monitor of that id, and dict for that monitor
+    :type monitor: Union[None, int, dict]
+    :param region: ``None`` for the entire region, and dict for the specified
+           region plus the offset imposed by the specified monitor
+    :return: numpy array of the grayscale screenshot
+    """
+    if isinstance(monitor, int):
+        monitor = sct.monitors[monitor]
+    elif not monitor:
         monitor = sct.monitors[1]
-    img = sct.grab(monitor)
+    if region:
+        region['top'] += monitor['top']
+        region['left'] += monitor['left']
+        img = sct.grab(region)
+    else:
+        img = sct.grab(monitor)
     img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
-    return img
+    return np.asarray(img.convert('L'))
 
 
 class BoardNotFoundError(Exception):
@@ -96,10 +113,16 @@ class BoardDetector:
         - ``left_mr``: the smallest x coordinate of the remaining mines label
         - ``right_mr``: the largest x coordinate of the remaining mines label
     """
-    def __init__(self, hkls, vkls, upper_mr, lower_mr, left_mr, right_mr):
+    def __init__(self, mon_id, dpr, hkls, vkls, upper_mr, lower_mr, left_mr,
+                 right_mr):
         """
         This method shouldn't be called explicitly.
         """
+        # the monitor id
+        self.mon_id = mon_id
+        # the device pixel ratio (x, y)
+        self.dpr = dpr
+
         # the cell board key lines
         self.hkls = hkls
         self.vkls = vkls
@@ -119,10 +142,10 @@ class BoardDetector:
         }
         if self.upper_mr is not None:
             self.mr_region = {
-                'top': self.upper_mr,
-                'left': self.left_mr,
-                'width': self.right_mr - self.left_mr,
-                'height': self.lower_mr - self.upper_mr,
+                'top': self.upper_mr // self.dpr[1],
+                'left': self.left_mr // self.dpr[0],
+                'width': (self.right_mr - self.left_mr) // self.dpr[0],
+                'height': (self.lower_mr - self.upper_mr) // self.dpr[1],
             }
         else:
             self.mr_region = None
@@ -133,26 +156,16 @@ class BoardDetector:
         self.offset_vkls = self.vkls - self.vkls[0]
 
         # preload various cells
-        self._face_templates = np.stack(
-            list(
-                map(
-                    loadimg,
-                    map('{}.gif'.format, (
-                        'open0',
-                        'open1',
-                        'open2',
-                        'open3',
-                        'open4',
-                        'open5',
-                        'open6',
-                        'open7',
-                        'open8',
-                        'bombflagged',
-                        'bombdeath',
-                        'bombmisflagged',
-                        'bombrevealed',
-                        'blank',
-                    ))))).astype(np.float64)
+        loaded_imgs = [
+            tobw(loadimg('open{}.gif'.format(i)), OPEN_THR)
+            for i in range(0, 9)
+        ]
+        loaded_imgs.extend(
+            map(loadimg, [
+                'bombflagged.gif', 'bombdeath.gif', 'bombmisflagged.gif',
+                'bombrevealed.gif', 'blank.gif'
+            ]))
+        self._face_templates = np.stack(loaded_imgs).astype(np.float64)
         self._face_templates = self._face_templates / 255 * 2 - 1
         self._face_templates = self._face_templates.reshape(
             self._face_templates.shape[0], -1)
@@ -175,30 +188,34 @@ class BoardDetector:
 
     @property
     def upper(self):
-        return self.hkls[0]
+        return self.hkls[0] // self.dpr[1]
 
     @property
     def lower(self):
-        return self.hkls[-1]
+        return self.hkls[-1] // self.dpr[1]
 
     @property
     def left(self):
-        return self.vkls[0]
+        return self.vkls[0] // self.dpr[0]
 
     @property
     def right(self):
-        return self.vkls[-1]
+        return self.vkls[-1] // self.dpr[0]
 
     @property
     def height(self):
+        """Board height, not pixel height"""
         return self.hkls.size - 1
 
     @property
     def width(self):
+        """Board width, not pixel width"""
         return self.vkls.size - 1
 
     def __str__(self):
         return ('{0.__class__.__name__}('
+                'mon_id={0.mon_id}, '
+                'dpr={0.dpr}, '
                 'hkls={0.hkls}, '
                 'vkls={0.vkls}, '
                 'upper_mr={0.upper_mr}, '
@@ -208,6 +225,8 @@ class BoardDetector:
 
     def __repr__(self):
         return ('{0.__class__.__name__}('
+                'mon_id={0.mon_id} '
+                'dpr={0.dpr}, '
                 'hkls={0.hkls!r}, '
                 'vkls={0.vkls!r}, '
                 'upper_mr={0.upper_mr!r}, '
@@ -216,16 +235,45 @@ class BoardDetector:
                 'right_mr={0.right_mr!r})'.format(self))
 
     @classmethod
-    def new(cls, screenshot: np.ndarray, enable_mr_detect=False):
+    def new(cls, mon_screenshots, enable_mr_detect=False):
+        """
+        Try every pair of (monitor id, monitor resolution, screenshot) until
+        one returns an instance of ``BoardDetector``.
+
+        :param mon_screenshots: list of tuples of (monitor id, monitor
+               resolution (width, height), the uint8 grayscale screenshot
+               possibly containing an empty board)
+        :param enable_mr_detect: if ``True``, enable mines remaining detection
+        :return: a ``BoardDetector`` object
+        :raise BoardNotFoundError: if until the last monitor ``BoardDetector``
+               is not instantiated successfully
+        """
+        total_num = len(mon_screenshots)
+        for i, (mon_id, mon_res, screenshot) in enumerate(mon_screenshots, 1):
+            try:
+                return cls._new(mon_id, mon_res, screenshot, enable_mr_detect)
+            except BoardNotFoundError:
+                if i == total_num:
+                    raise
+
+    @classmethod
+    def _new(cls, mon_id: int, mon_res, screenshot: np.ndarray,
+             enable_mr_detect):
         """
         Returns a new instance of ``BoardDetector`` from ``screenshot``.
 
+        :param mon_id: the monitor id
+        :param mon_res: the monitor resolution (width, height)
         :param screenshot: the uint8 grayscale screenshot containing an empty
                board
         :param enable_mr_detect: if ``True``, enable mines remaining detection
         :return: a ``BoardDetector`` object
         :raise BoardNotFoundError:
         """
+        # COMPUTE DEVICE PIXEL RATIO
+        dpr_x = screenshot.shape[1] // mon_res[0]
+        dpr_y = screenshot.shape[0] // mon_res[1]
+
         # LOCALIZE CELL BOARD
         crosstmpl = loadimg('b_crs.png')
         DOTS_TOL = 250
@@ -273,7 +321,8 @@ class BoardDetector:
             [vkls[-1] + (vkls[-1] - vkls[-2])],
         )) + 1
         if not enable_mr_detect:
-            return cls(hkls, vkls, None, None, None, None)
+            return cls(mon_id, (dpr_x, dpr_y), hkls, vkls, None, None, None,
+                       None)
 
         left = vkls[0]
         right = vkls[-1]
@@ -315,7 +364,8 @@ class BoardDetector:
         upper_mr = mrulloc[0, 0] + 1
         right_mr = mrlrloc[0, 1] + 1
 
-        return cls(hkls, vkls, upper_mr, lower_mr, left_mr, right_mr)
+        return cls(mon_id, (dpr_x, dpr_y), hkls, vkls, upper_mr, lower_mr,
+                   left_mr, right_mr)
 
     def recognize_board_and_mr(self, sct):
         boardimg, mrimg = self.localize_board_and_mr(sct)
@@ -348,11 +398,10 @@ class BoardDetector:
         this ``BoardDetector``; otherwise, returns
         ``(cell_board_image, None)``.
         """
-        boardimg = np.asarray(
-            make_screenshot(sct, self.board_region).convert('L'))
+        boardimg = make_screenshot(sct, self.mon_id, self.board_region)
         if self.upper_mr is None:
             return boardimg, None
-        mrimg = np.asarray(make_screenshot(sct, self.mr_region).convert('L'))
+        mrimg = make_screenshot(sct, self.mon_id, self.mr_region)
         return boardimg, mrimg
 
     def get_cells_from_board(self, boardimg):
@@ -368,7 +417,8 @@ class BoardDetector:
         return cells
 
     def recognize_cells(self, cells):
-        cells = np.stack([cv2.resize(x, (16, 16)) for x in cells])
+        cells = np.stack(
+            [tobw(cv2.resize(x, (16, 16)), OPEN_THR) for x in cells])
         cells = cells.astype(np.float64) / 255 * 2 - 1
         cells = cells.reshape((cells.shape[0], -1))
         D = cdist(self._face_templates, cells)
@@ -433,6 +483,12 @@ def _main():
         'scene if specified; otherwise, localize board '
         'and mine remaining label from screenshot')
     parser.add_argument(
+        '-D',
+        dest='empty_board_monitor',
+        type=int,
+        default=1,
+        help='the monitor id of the empty_board')
+    parser.add_argument(
         '-b',
         type=os.path.normpath,
         dest='board_tofile',
@@ -466,10 +522,22 @@ def _main():
     args = parser.parse_args()
 
     with mss.mss() as sct:
+
+        def get_mon_resolution(_mon_id):
+            _mon = sct.monitors[_mon_id]
+            return _mon['width'], _mon['height']
+
         if not args.empty_board:
-            empty_board = np.asarray(make_screenshot(sct).convert('L'))
+            empty_board = [(i, get_mon_resolution(i), make_screenshot(sct, i))
+                           for i in range(1, len(sct.monitors))]
         else:
-            empty_board = np.asarray(Image.open(args.empty_board).convert('L'))
+            empty_board = [
+                (
+                    args.empty_board_monitor,
+                    get_mon_resolution(args.empty_board_monitor),
+                    np.asarray(Image.open(args.empty_board).convert('L')),
+                ),
+            ]
         bd = BoardDetector.new(empty_board, args.mr_tofile or args.mrnum)
         boardimg, mrimg = bd.localize_board_and_mr(sct)
     if args.board_tofile:
