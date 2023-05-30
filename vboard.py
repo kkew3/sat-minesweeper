@@ -460,7 +460,7 @@ class StageIdentifier:
         :param scr: should be an array of shape (H, W), of dtype uint8
         :param board: the recognized board
         """
-        min_white_ratio = 1/3  # minimum required ratio of white pixels
+        min_white_ratio = 1 / 3  # minimum required ratio of white pixels
         sample_size = 32  # size of center crop
         assert scr.shape[0] > sample_size and scr.shape[1] > sample_size
         splower = (scr.shape[0] - sample_size) // 2
@@ -538,11 +538,7 @@ def _main():
         Image.fromarray(mrimg).save(args.mr_tofile)
     print('The board:')
     board = bd.recognize_cells(bd.get_cells_from_board(boardimg))
-    np.savetxt(
-        sys.stdout,
-        board,
-        fmt='%d',
-        delimiter=',')
+    np.savetxt(sys.stdout, board, fmt='%d', delimiter=',')
     print('Mines remaining:')
     print(bd.recognize_mr_digits(mrimg))
     print('Winning state:')
