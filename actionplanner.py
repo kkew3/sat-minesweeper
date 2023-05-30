@@ -13,25 +13,113 @@ import solverutils as sutils
 
 # pylint: disable=too-few-public-methods
 class MouseClicker:
-    def __init__(self, mon, dpr):
+    def __init__(self, mon, dpr, bdetector: vb.BoardDetector):
+        """
+        :param mon: the monitor region
+        :param dpr: the device pixel ratio
+        :param bdetector: the board detector used
+        """
         self.mon = mon
         self.dpr = dpr
+        self.bd = bdetector
+        self._l = logging.getLogger('.'.join((__name__, type(self).__name__)))
 
-    def click(self, ploc: typing.Tuple[int, int], leftbutton: bool):
+    def do_click(self, ploc: typing.Tuple[int, int], leftbutton: bool):
+        """The actual click operation, to be used internally."""
         # the screen location, taking into account device pixel ratio
         sloc = (ploc[0] // self.dpr[0], ploc[1] // self.dpr[1])
         pg.moveTo(sloc[0] + self.mon['left'], sloc[1] + self.mon['top'])
         button = 'left' if leftbutton else 'right'
         pg.click(button=button)
 
+    def click(self, blocs, leftbutton):
+        """
+        Click various board locations. The actual clicks might be postponed
+        until ``commit`` is called.
+
+        :param blocs: board locs
+        :param leftbutton: either bool or list of bools
+        """
+        if isinstance(leftbutton, bool):
+            leftbutton = itertools.repeat(leftbutton, len(blocs[0]))
+        plocs_x, plocs_y = self.bd.boardloc_as_pixelloc(blocs)
+        bx, by = blocs
+        for i, (x, y, lb) in enumerate(zip(plocs_x, plocs_y, leftbutton)):
+            self.do_click((x, y), lb)
+            self._l.info('%s clicked: %s', 'left' if leftbutton else 'right',
+                         bx[i], by[i])
+
+    def commit(self):
+        """Commit all the clicks."""
+        pass
+
+    def click_commit(self, blocs, leftbutton):
+        """
+        Click and commit.
+
+        :param blocs: ...
+        :param leftbutton: ...
+        """
+        self.click(blocs, leftbutton)
+        self.commit()
+
+
+class LeftBufferedMouseClicker(MouseClicker):
+    """
+    MouseClicker that buffers left clicks till commit.
+    """
+    def __init__(self, mon, dpr, bdetector: vb.BoardDetector, sct):
+        """
+        :param mon: ...
+        :param dpr: ...
+        :param bdetector: the ``BoardDetector`` to use
+        :param sct: an ``mss.mss`` instance
+        """
+        super().__init__(mon, dpr, bdetector)
+        self.sct = sct
+        self.left_bx = np.array([], dtype=int)
+        self.left_by = np.array([], dtype=int)
+
+    def click(self, blocs, leftbutton):
+        bx, by = blocs
+        if isinstance(leftbutton, bool):
+            leftbutton = np.array(list(itertools.repeat(leftbutton, len(bx))))
+        right_blocs = bx[~leftbutton], by[~leftbutton]
+        self._l.info('right clicks: %s', list(zip(*right_blocs)))
+        for pxy in zip(*self.bd.boardloc_as_pixelloc(right_blocs)):
+            self.do_click(pxy, False)
+        self.left_bx = np.append(self.left_bx, bx[leftbutton])
+        self.left_by = np.append(self.left_by, by[leftbutton])
+
+    def commit(self):
+        if self.left_bx.shape[0]:
+            board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+            values = board[self.left_bx, self.left_by]
+            values_diff = np.zeros(self.left_bx.shape[0], dtype=bool)
+            blocs = self.left_bx, self.left_by
+            self._l.info('left clicks: %s', list(zip(*blocs)))
+            for i, pxy in enumerate(zip(*self.bd.boardloc_as_pixelloc(blocs))):
+                prev_values = values
+                if not values_diff[i]:
+                    self.do_click(pxy, True)
+                    board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+                    values = board[self.left_bx, self.left_by]
+                    values_diff = np.logical_or(prev_values != values,
+                                                values_diff)
+                else:
+                    self._l.info(
+                        'skipped clicking (%d, %d) because '
+                        'clicking has no effect', self.left_bx[i],
+                        self.left_by[i])
+        self.left_bx = np.array([], dtype=int)
+        self.left_by = np.array([], dtype=int)
+
 
 # pylint: disable=too-few-public-methods
 class ActionPlanner:
-    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
-                 mc: MouseClicker):
+    def __init__(self, delay_after: float, mc: MouseClicker):
         self.mc = mc
         self.delay_after = delay_after
-        self.bd = bdetector
         self._l = logging.getLogger('.'.join((__name__, type(self).__name__)))
 
     def click_mines(self, board, qidx_mine) -> None:
@@ -51,9 +139,7 @@ class ActionPlanner:
 class PlainActionPlanner(ActionPlanner):
     def click_mines(self, _board, qidx_mine):
         blocs = qidx_mine[:, 0], qidx_mine[:, 1]
-        plocs_x, plocs_y = self.bd.boardloc_as_pixelloc(blocs)
-        for px, py, mine_under in zip(plocs_x, plocs_y, qidx_mine[:, 2]):
-            self.mc.click((px, py), not bool(mine_under))
+        self.mc.click_commit(blocs, qidx_mine[:, 2])
         time.sleep(self.delay_after)
 
 
@@ -83,11 +169,9 @@ class BoardFlagModifier:
 # pylint: disable=too-few-public-methods
 class NoFlagActionPlanner(ActionPlanner):
     def click_mines(self, _board, qidx_mine):
-        blocs = qidx_mine[:, 0], qidx_mine[:, 1]
-        plocs_x, plocs_y = self.bd.boardloc_as_pixelloc(blocs)
-        for px, py, mine_under in zip(plocs_x, plocs_y, qidx_mine[:, 2]):
-            if not mine_under:
-                self.mc.click((px, py), True)
+        no_mine_under = qidx_mine[qidx_mine[:, 2] == 0]
+        blocs = no_mine_under[:, 0], no_mine_under[:, 1]
+        self.mc.click_commit(blocs, True)
         time.sleep(self.delay_after)
 
 
@@ -274,14 +358,13 @@ def find_optimal_chord_strategy(board, qidx_mine, th=2):
     ucells_star, to_flags_star = agg_strategies[i]
     rest_ccells_star = all_rest_ccells[i]
     right_clicks = to_flags_star
+    rest_left_clicks = list(itertools.chain(ccnmnc_loc, rest_ccells_star))
+    # for debug purpose
+    #total_clicks_star = all_total_clicks[i]
     # put ucells_star at first so that when providing GreedyChordActionPlanner
     # with sct, chord will happen first; since chord opens cells, the rest
     # cells may not need to be opened.
-    left_clicks = list(
-        itertools.chain(ucells_star, ccnmnc_loc, rest_ccells_star))
-    # for debug purpose
-    #total_clicks_star = all_total_clicks[i]
-    return right_clicks, left_clicks
+    return right_clicks, ucells_star, rest_left_clicks
 
 
 class GreedyChordActionPlanner(ActionPlanner):
@@ -295,18 +378,13 @@ class GreedyChordActionPlanner(ActionPlanner):
     the total number of clicks of the greedy algorithm is on average down
     21% with respect to NF strategy.
     """
-    def __init__(self,
-                 delay_after: float,
-                 bdetector: vb.BoardDetector,
-                 mc: MouseClicker,
-                 sct=None):
+    def __init__(self, delay_after: float, mc: MouseClicker, sct=None):
         """
         :param delay_after: ...
-        :param bdetector: ...
         :param sct: if provided, should be the ``mss.mss()`` object used to
                provide instant feedback during ``click_mines``
         """
-        super().__init__(delay_after, bdetector, mc)
+        super().__init__(delay_after, mc)
         self.all_mines_ever_found = set()
         self.mines_flagged = set()
         self.sct = sct
@@ -347,39 +425,19 @@ class GreedyChordActionPlanner(ActionPlanner):
 
     def click_mines(self, board, qidx_mine):
         expanded_qidx_mine = self.expand_partial_solutions(qidx_mine)
-        right_clicks, left_clicks = find_optimal_chord_strategy(
+        right_clicks, left_chords, left_clicks = find_optimal_chord_strategy(
             board, expanded_qidx_mine)
+        left_clicks = left_chords + left_clicks
         self.mines_flagged |= set(right_clicks)
         if right_clicks:
-            self._l.info('right clicks: %s', right_clicks)
             right_clicks = np.asarray(right_clicks)
             right_blocs = right_clicks[:, 0], right_clicks[:, 1]
-            for pxy in zip(*self.bd.boardloc_as_pixelloc(right_blocs)):
-                self.mc.click(pxy, False)
+            self.mc.click(right_blocs, False)
         if left_clicks:
-            self._l.info('left clicks: %s', left_clicks)
             left_clicks = np.asarray(left_clicks)
             left_blocs = left_clicks[:, 0], left_clicks[:, 1]
-            board, _, _ = self.bd.recognize_board_and_mr(self.sct)
-            values = board[left_clicks[:, 0], left_clicks[:, 1]]
-            values_diff = np.zeros(left_clicks.shape[0], dtype=bool)
-            for i, pxy in enumerate(
-                    zip(*self.bd.boardloc_as_pixelloc(left_blocs))):
-                if self.sct:
-                    prev_values = values
-                    if not values_diff[i]:
-                        self.mc.click(pxy, True)
-                        board, _, _ = self.bd.recognize_board_and_mr(self.sct)
-                        values = board[left_clicks[:, 0], left_clicks[:, 1]]
-                        values_diff = np.logical_or((prev_values != values),
-                                                    values_diff)
-                    else:
-                        self._l.info(
-                            'skipped clicking (%d, %d) because '
-                            'clicking has no effect', left_clicks[i, 0],
-                            left_clicks[i, 1])
-                else:
-                    self.mc.click(pxy, True)
+            self.mc.click(left_blocs, True)
+        self.mc.commit()
         time.sleep(self.delay_after)
 
 
