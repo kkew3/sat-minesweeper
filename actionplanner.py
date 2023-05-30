@@ -6,42 +6,30 @@ import logging
 import numpy as np
 import networkx as nx
 import pyautogui as pg
-from PIL import Image
-import mss
 
 import vboard as vb
 import solverutils as sutils
 
 
-def make_screenshot(sct):
-    img = sct.grab(sct.monitors[1])
-    img = Image.frombytes('RGB', img.size, img.bgra, 'raw', 'BGRX')
-    return img
-
-
 # pylint: disable=too-few-public-methods
 class MouseClicker:
-    def __init__(self):
-        with mss.mss() as sct:
-            scr = make_screenshot(sct)
-        self.screenshot_wh = scr.width, scr.height
-        self.screen_wh = tuple(pg.size())
+    def __init__(self, mon, dpr):
+        self.mon = mon
+        self.dpr = dpr
 
     def click(self, ploc: typing.Tuple[int, int], leftbutton: bool):
-        sloc = (int(ploc[0] * self.screen_wh[0] / self.screenshot_wh[0]),
-                int(ploc[1] * self.screen_wh[1] / self.screenshot_wh[1]))
-        pg.moveTo(sloc[0], sloc[1])
+        # the screen location, taking into account device pixel ratio
+        sloc = (ploc[0] // self.dpr[0], ploc[1] // self.dpr[1])
+        pg.moveTo(sloc[0] + self.mon['left'], sloc[1] + self.mon['top'])
         button = 'left' if leftbutton else 'right'
         pg.click(button=button)
 
 
 # pylint: disable=too-few-public-methods
 class ActionPlanner:
-    def __init__(self,
-                 delay_after: float,
-                 bdetector: vb.BoardDetector,
-                 _mc=None):
-        self.mc = _mc or MouseClicker()
+    def __init__(self, delay_after: float, bdetector: vb.BoardDetector,
+                 mc: MouseClicker):
+        self.mc = mc
         self.delay_after = delay_after
         self.bd = bdetector
         self._l = logging.getLogger('.'.join((__name__, type(self).__name__)))
@@ -310,15 +298,15 @@ class GreedyChordActionPlanner(ActionPlanner):
     def __init__(self,
                  delay_after: float,
                  bdetector: vb.BoardDetector,
-                 sct=None,
-                 _mc=None):
+                 mc: MouseClicker,
+                 sct=None):
         """
         :param delay_after: ...
         :param bdetector: ...
         :param sct: if provided, should be the ``mss.mss()`` object used to
                     provide instant feedback during ``click_mines``
         """
-        super().__init__(delay_after, bdetector, _mc=_mc)
+        super().__init__(delay_after, bdetector, mc)
         self.all_mines_ever_found = set()
         self.mines_flagged = set()
         self.sct = sct
