@@ -454,18 +454,20 @@ class BoardDetector:
 
 # pylint: disable=too-few-public-methods
 class StageIdentifier:
-    def __init__(self):
-        self.win_text = loadimg('new/win_text.png')
-
     def identify_stage(self, scr, board):
         """
         :param scr: should be an array of shape (H, W), of dtype uint8
         :param board: the recognized board
         """
-        match_tol = 25
-        if np.any(
-                cv2.matchTemplate(scr, self.win_text, cv2.TM_SQDIFF) <=
-                match_tol):
+        min_white_ratio = 1/3  # minimum required ratio of white pixels
+        sample_size = 32  # size of center crop
+        assert scr.shape[0] > sample_size and scr.shape[1] > sample_size
+        splower = (scr.shape[0] - sample_size) // 2
+        spleft = (scr.shape[1] - sample_size) // 2
+        spl = scr[splower:splower + sample_size, spleft:spleft + sample_size]
+        # if the winning message appears, there should be many white pixels
+        # within the crop region
+        if np.sum(spl > 250) / spl.size > min_white_ratio:
             return 'win'
         if np.any(board == CID['m']):
             return 'lost'
