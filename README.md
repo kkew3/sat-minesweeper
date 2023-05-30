@@ -95,7 +95,7 @@ There are a number of possible causes and solutions:
   please wait for the next update or play with various parameters in `vboard.py`
 - you are using the Retina display of Mac computers:
   try scaling your browser up or down before issuing the running command again;
-- the browser containing the game interface is occluded by other windows
+- the browser containing the game interface is occluded by other windows:
   just put it to the front
 - there are background windows containing distractive contents:
   try closing as many background windows as possible
