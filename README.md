@@ -80,6 +80,9 @@ The virtual games can be used to compare which solver is faster on which type of
 
 ## What if error occurs?
 
+First of all, if you encounter `SyntaxError`, it could indicate that your Python is not latest enough.
+This program is developed under Python-3.9.7, and is not tested in versions below, so no guarantee as for now.
+
 If in the error message,
 
 - `vboard.BoardNotFoundError` appears:
