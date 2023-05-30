@@ -13,6 +13,8 @@ from solverutils import CID
 
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
+# related to board cells localization
+DOTS_TOL = 200  # the max allowed template matching difference
 # related to open cell recognition
 OPEN_THR = 153  # the brightness between digit (122) and background (188)
 # related to remaining mines digit recognition
@@ -276,7 +278,6 @@ class BoardDetector:
 
         # LOCALIZE CELL BOARD
         crosstmpl = loadimg('b_crs.png')
-        DOTS_TOL = 250
         mmr = cv2.matchTemplate(screenshot, crosstmpl,
                                 cv2.TM_SQDIFF) <= DOTS_TOL
         dots = np.stack(np.nonzero(mmr), axis=1)
