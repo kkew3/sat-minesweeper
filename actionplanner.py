@@ -96,17 +96,23 @@ class LBMouseClicker(MouseClicker):
         if self.left_bx.shape[0]:
             board, _, _ = self.bd.recognize_board_and_mr(self.sct)
             values = board[self.left_bx, self.left_by]
-            values_diff = np.zeros(self.left_bx.shape[0], dtype=bool)
+            values_diff = np.zeros_like(values, dtype=bool)
+            values_diff[values == 0] = True
             blocs = self.left_bx, self.left_by
             self._l.info('left clicks: %s', list(zip(*blocs)))
             for i, pxy in enumerate(zip(*self.bd.boardloc_as_pixelloc(blocs))):
                 prev_values = values
                 if not values_diff[i]:
+                    # NOTE: It's possible to click a recovered cell if it was
+                    # recovered as side effects in the previous commit, of
+                    # which current commit is unaware. I have no idea how to
+                    # fix this right now.
                     self.do_click(pxy, True)
                     board, _, _ = self.bd.recognize_board_and_mr(self.sct)
                     values = board[self.left_bx, self.left_by]
                     values_diff = np.logical_or(prev_values != values,
                                                 values_diff)
+                    values_diff[values == 0] = True  # could be redundant
                 else:
                     self._l.info(
                         'skipped clicking (%d, %d) because '
