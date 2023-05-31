@@ -85,7 +85,8 @@ class LeftBufferedMouseClicker(MouseClicker):
         if isinstance(leftbutton, bool):
             leftbutton = np.array(list(itertools.repeat(leftbutton, len(bx))))
         right_blocs = bx[~leftbutton], by[~leftbutton]
-        self._l.info('right clicks: %s', list(zip(*right_blocs)))
+        if np.any(~leftbutton):
+            self._l.info('right clicks: %s', list(zip(*right_blocs)))
         for pxy in zip(*self.bd.boardloc_as_pixelloc(right_blocs)):
             self.do_click(pxy, False)
         self.left_bx = np.append(self.left_bx, bx[leftbutton])
