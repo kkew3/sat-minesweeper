@@ -143,6 +143,10 @@ Since finding the optimal chording strategy is exponential time complexity (I di
 It's too long to explain it here.
 If you want to know more, read the code [`actionplanner.py`](./actionplanner.py).
 
+## Minimization of mouse movement
+
+Christofides algorithm that approximates the TSP problem is used to attempt to minimize mouse movement.
+
 ## Aggressive guessing
 
 This function is by default turned off.
