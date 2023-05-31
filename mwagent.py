@@ -96,7 +96,8 @@ def main():
                 for i in range(1, len(sct.monitors))]
         # leave `enable_mr_detect` False intentionally
         bd = vb.BoardDetector.new(scrs)
-        mc = planner.LBMouseClicker(sct.monitors[bd.mon_id], bd.dpr, bd, sct)
+        mc = planner.ChrfLBMouseClicker(sct.monitors[bd.mon_id], bd.dpr, bd,
+                                        sct)
         pl = planner.GreedyChordActionPlanner(0.0, mc, sct)
         si = vb.StageIdentifier()
 

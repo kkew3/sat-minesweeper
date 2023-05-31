@@ -4,6 +4,7 @@ import itertools
 import logging
 
 import numpy as np
+from scipy.spatial import distance as sp_dist
 import networkx as nx
 import pyautogui as pg
 
@@ -121,6 +122,79 @@ class LBMouseClicker(MouseClicker):
         self.left_bx = np.array([], dtype=int)
         self.left_by = np.array([], dtype=int)
 
+
+class ChrfLBMouseClicker(LBMouseClicker):
+    """
+    ``LBMouseClicker`` using Christofides algorithm to reorder buffered left
+    clicks.
+    """
+    def __init__(self, mon, dpr, bdetector: vb.BoardDetector, sct):
+        super().__init__(mon, dpr, bdetector, sct)
+        self.prev_ploc = None
+
+    def do_click(self, ploc: typing.Tuple[int, int], leftbutton: bool):
+        super().do_click(ploc, leftbutton)
+        self.prev_ploc = ploc
+
+    def commit(self):
+        if self.left_bx.shape[0] == 1:
+            return super().commit()
+        if self.left_bx.shape[0]:
+            blocs = np.stack([self.left_bx, self.left_by], axis=1)
+            plocs = self.bd.boardloc_as_pixelloc((self.left_bx, self.left_by))
+            if self.prev_ploc is not None:
+                # insert (-1, -1) at the beginning representing the bloc
+                # corresponding prev_ploc
+                blocs = np.insert(blocs, 0, -np.ones(2, dtype=int), axis=0)
+                plocs = np.stack(plocs, axis=1)
+                plocs = np.insert(plocs, 0, self.prev_ploc, axis=0)
+            dists = sp_dist.pdist(plocs)
+            G = nx.Graph()
+            for i in range(blocs.shape[0]):
+                G.add_node(tuple(blocs[i]))
+            for i, j in itertools.combinations(range(blocs.shape[0]), 2):
+                e = blocs.shape[0] * i + j - ((i + 2) * (i + 1)) // 2
+                G.add_edge(tuple(blocs[i]), tuple(blocs[j]), weight=dists[e])
+            cycle = nx.algorithms.approximation.christofides(G)
+            assert len(cycle) == blocs.shape[0] + 1
+            del cycle[-1]
+            if self.prev_ploc is not None:
+                start = cycle.index((-1, -1))
+                proper_path = []  # that starts with (-1, -1)
+                while len(proper_path) < blocs.shape[0]:
+                    proper_path.append(cycle[start])
+                    start = (start + 1) % blocs.shape[0]
+                del proper_path[0]  # remove (-1, -1)
+            else:
+                proper_path = cycle
+            blocs = np.array(proper_path)
+            blocs = blocs[:, 0], blocs[:, 1]
+
+            board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+            values = board[blocs[0], blocs[1]]
+            values_diff = np.zeros_like(values, dtype=bool)
+            values_diff[values == 0] = True
+            self._l.info('left clicks: %s', list(zip(*blocs)))
+            for i, pxy in enumerate(zip(*self.bd.boardloc_as_pixelloc(blocs))):
+                prev_values = values
+                if not values_diff[i]:
+                    # NOTE: It's possible to click a recovered cell if it was
+                    # recovered as side effects in the previous commit, of
+                    # which current commit is unaware. I have no idea how to
+                    # fix this right now.
+                    self.do_click(pxy, True)
+                    board, _, _ = self.bd.recognize_board_and_mr(self.sct)
+                    values = board[blocs[0], blocs[1]]
+                    values_diff = np.logical_or(prev_values != values,
+                                                values_diff)
+                    values_diff[values == 0] = True  # could be redundant
+                else:
+                    self._l.info(
+                        'skipped clicking (%d, %d) because '
+                        'clicking has no effect', blocs[0][i],
+                        blocs[1][i])
+        self.left_bx = np.array([], dtype=int)
+        self.left_by = np.array([], dtype=int)
 
 # pylint: disable=too-few-public-methods
 class ActionPlanner:
