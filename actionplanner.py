@@ -123,17 +123,28 @@ class LBMouseClicker(MouseClicker):
         self.left_by = np.array([], dtype=int)
 
 
-class ChrfLBMouseClicker(LBMouseClicker):
+class NatChrfLBMouseClicker(LBMouseClicker):
     """
-    ``LBMouseClicker`` using Christofides algorithm to reorder buffered left
-    clicks.
+    ``NatLBMouseClicker`` using Christofides algorithm to reorder buffered left
+    clicks with natural mouse movement.
     """
     def __init__(self, mon, dpr, bdetector: vb.BoardDetector, sct):
         super().__init__(mon, dpr, bdetector, sct)
         self.prev_ploc = None
+        self.unit_dur = 0.07 / 192
 
     def do_click(self, ploc: typing.Tuple[int, int], leftbutton: bool):
-        super().do_click(ploc, leftbutton)
+        # the screen location, taking into account device pixel ratio
+        sloc = (ploc[0] // self.dpr[0], ploc[1] // self.dpr[1])
+        if self.prev_ploc is not None:
+            pd = sp_dist.euclidean(ploc, self.prev_ploc)
+            self._l.info('mouse cursor move distance: %f', pd)
+            dur = self.unit_dur * pd
+        else:
+            dur = 0.0
+        pg.moveTo(sloc[0] + self.mon['left'], sloc[1] + self.mon['top'], dur)
+        button = 'left' if leftbutton else 'right'
+        pg.click(button=button)
         self.prev_ploc = ploc
 
     def commit(self):
