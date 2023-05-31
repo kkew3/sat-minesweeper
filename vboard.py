@@ -11,6 +11,8 @@ import cv2
 from PIL import Image
 from solverutils import CID
 
+import pyautogui as pg
+
 IMGDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imgs')
 
 # related to board cells localization
@@ -61,7 +63,7 @@ def get_rect_midpoint(top_left, shape):
     ])
 
 
-def make_screenshot(sct, monitor=None, region=None):
+def make_screenshot(sct, monitor=None, region=None, esc_before_grab=False):
     """
     Make uint8 grayscale screenshot of specified region on specified monitor.
 
@@ -71,12 +73,16 @@ def make_screenshot(sct, monitor=None, region=None):
     :type monitor: Union[None, int, dict]
     :param region: ``None`` for the entire region, and dict for the specified
            region plus the offset imposed by the specified monitor
+    :param esc_before_grab: press Esc key before grabbing to temporarily hide
+           the mouse cursor
     :return: numpy array of the grayscale screenshot
     """
     if isinstance(monitor, int):
         monitor = sct.monitors[monitor]
     elif not monitor:
         monitor = sct.monitors[1]
+    if esc_before_grab:
+        pg.press('esc')
     if region:
         adjusted_region = region.copy()
         adjusted_region['top'] += monitor['top']
@@ -400,7 +406,8 @@ class BoardDetector:
         this ``BoardDetector``; otherwise, returns
         ``(cell_board_image, None)``.
         """
-        boardimg = make_screenshot(sct, self.mon_id, self.board_region)
+        boardimg = make_screenshot(sct, self.mon_id, self.board_region,
+                                   esc_before_grab=True)
         if self.upper_mr is None:
             return boardimg, None
         mrimg = make_screenshot(sct, self.mon_id, self.mr_region)
