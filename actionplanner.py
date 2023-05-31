@@ -64,7 +64,7 @@ class MouseClicker:
         self.commit()
 
 
-class LeftBufferedMouseClicker(MouseClicker):
+class LBMouseClicker(MouseClicker):
     """
     MouseClicker that buffers left clicks till commit.
     """
