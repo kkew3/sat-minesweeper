@@ -47,8 +47,8 @@ class MouseClicker:
         bx, by = blocs
         for i, (x, y, lb) in enumerate(zip(plocs_x, plocs_y, leftbutton)):
             self.do_click((x, y), lb)
-            self._l.info('%s clicked: %s', 'left' if leftbutton else 'right',
-                         bx[i], by[i])
+            self._l.info('%s clicked: %s', 'left' if lb else 'right',
+                         (bx[i], by[i]))
 
     def commit(self):
         """Commit all the clicks."""
@@ -195,7 +195,7 @@ def christofide_reorder(bdetector: vb.BoardDetector, bx, by, prev_ploc):
 
 class NatChrfBMouseClicker(MouseClicker):
     """
-    ``NatLBMouseClicker`` using Christofides algorithm to reorder buffered left
+    ``NatChrfBMouseClicker`` using Christofides algorithm to reorder buffered
     clicks with natural mouse movement.
     """
     def __init__(self, mon, dpr, bdetector: vb.BoardDetector, sct):
